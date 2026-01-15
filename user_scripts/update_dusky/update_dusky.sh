@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  ARCH LINUX Dusky UPDATE ORCHESTRATOR (v5.3 Battle tested!!!!!!!!!!!!)
+#  ARCH LINUX UPDATE ORCHESTRATOR (v5.4 - Fail-Safe Stash Pop Recovery)
 #  Description: Manages dotfile/system updates while preserving user tweaks.
 #  Target:      Arch Linux / Hyprland / UWSM / Bash 5.0+
 #  Repo Type:   Git Bare Repository (--git-dir=~/dusky --work-tree=~)
@@ -289,6 +289,62 @@ cleanup_git_state() {
     fi
 }
 
+# ------------------------------------------------------------------------------
+# BACKUP TRACKED FILES (Pre-Reset Safety Net)
+# Backs up ONLY git-tracked files to avoid copying entire home directory
+# ------------------------------------------------------------------------------
+backup_tracked_files() {
+    local backup_dir="${HOME}/Documents/dusky_pre_reset_backup_$(date +%Y%m%d_%H%M%S)"
+    local tracked_files file_count=0
+    
+    log INFO "Backing up tracked files before reset..."
+    
+    # Get list of all files currently tracked by the repository
+    tracked_files=$("${GIT_CMD[@]}" ls-files 2>/dev/null) || {
+        log WARN "Could not get tracked file list. Skipping backup."
+        return 1
+    }
+    
+    if [[ -z "$tracked_files" ]]; then
+        log WARN "No tracked files found. Skipping backup."
+        return 0
+    fi
+    
+    # Create backup directory
+    if ! mkdir -p "$backup_dir"; then
+        log ERROR "Failed to create backup directory: $backup_dir"
+        return 1
+    fi
+    
+    # Iterate through tracked files and copy them preserving structure
+    while IFS= read -r file; do
+        [[ -z "$file" ]] && continue
+        
+        local src="${WORK_TREE}/${file}"
+        local dest="${backup_dir}/${file}"
+        
+        # Only backup if file exists in worktree
+        if [[ -e "$src" ]]; then
+            # Create parent directory structure
+            mkdir -p "$(dirname "$dest")" 2>/dev/null || true
+            
+            # Copy the file (preserve attributes)
+            if cp -a -- "$src" "$dest" 2>/dev/null; then
+                ((file_count++))
+            fi
+        fi
+    done <<< "$tracked_files"
+    
+    if ((file_count > 0)); then
+        log OK "Backed up $file_count tracked files to: $backup_dir"
+    else
+        log WARN "No files were backed up."
+        rmdir "$backup_dir" 2>/dev/null || true
+    fi
+    
+    return 0
+}
+
 pull_updates() {
     log SECTION "Synchronizing Dotfiles Repository"
     
@@ -341,6 +397,10 @@ pull_updates() {
                 3)
                     read -r -t 30 -p "Type 'yes' to confirm destructive reset: " confirm || confirm=""
                     [[ "$confirm" == "yes" ]] || { log INFO "Aborted"; return 1; }
+                    
+                    # Safety backup before destructive operation
+                    backup_tracked_files || log WARN "Backup failed, but continuing..."
+                    
                     "${GIT_CMD[@]}" reset --hard HEAD >> "$LOG_FILE" 2>&1
                     log WARN "Hard reset complete"
                     ;;
@@ -467,6 +527,9 @@ pull_updates() {
                     return 1
                     ;;
                 2)
+                    # Safety backup before destructive operation
+                    backup_tracked_files || log WARN "Backup failed, but continuing..."
+                    
                     log INFO "Resetting to upstream..."
                     if "${GIT_CMD[@]}" reset --hard "origin/${BRANCH}" >> "$LOG_FILE" 2>&1; then
                         log OK "Reset complete."
@@ -477,6 +540,9 @@ pull_updates() {
                     fi
                     ;;
                 3)
+                    # Safety backup before rebase (which may fail and trigger reset)
+                    backup_tracked_files || log WARN "Backup failed, but continuing..."
+                    
                     log INFO "Attempting rebase..."
                     local rebase_output rebase_rc=0
                     rebase_output=$("${GIT_CMD[@]}" rebase "origin/${BRANCH}" 2>&1) || rebase_rc=$?
@@ -509,18 +575,131 @@ pull_updates() {
     log OK "Repository synchronized."
     
     # --------------------------------------------------------------------------
-    # RESTORE STASHED CHANGES
+    # RESTORE STASHED CHANGES (Fail-Safe Stash Pop Strategy)
     # --------------------------------------------------------------------------
     if [[ -n "${STASH_REF:-}" ]]; then
         log INFO "Restoring your modifications..."
         
-        if "${GIT_CMD[@]}" stash pop >> "$LOG_FILE" 2>&1; then
+        local stash_pop_rc=0
+        if ! "${GIT_CMD[@]}" stash pop >> "$LOG_FILE" 2>&1; then
+            stash_pop_rc=1
+        fi
+        
+        if ((stash_pop_rc == 0)); then
             STASH_REF=""
             log OK "Your customizations re-applied."
         else
-            log WARN "Stash pop had conflicts."
-            log INFO "Your changes are in stash. Resolve manually, then:"
-            printf '    git --git-dir=%s --work-tree=%s stash drop\n' "$DOTFILES_GIT_DIR" "$WORK_TREE"
+            # ══════════════════════════════════════════════════════════════════
+            # FAIL-SAFE STASH POP RECOVERY
+            # Stash pop failed (likely conflicts). Do NOT leave conflict markers
+            # in live config files - they crash Hyprland/Waybar/etc.
+            # ══════════════════════════════════════════════════════════════════
+            log WARN "Stash pop encountered conflicts. Initiating fail-safe recovery..."
+            
+            # Identify exactly which files are conflicted
+            local -a conflicted_files=()
+            local conflict_list
+            conflict_list=$("${GIT_CMD[@]}" diff --name-only --diff-filter=U 2>/dev/null) || conflict_list=""
+            
+            if [[ -z "$conflict_list" ]]; then
+                # Stash pop failed but no conflicts detected - unusual state
+                log ERROR "Stash pop failed but no conflicts detected. Manual intervention required."
+                log INFO "Your changes remain in stash. Recover with:"
+                printf '    git --git-dir="%s" --work-tree="%s" stash pop\n' "$DOTFILES_GIT_DIR" "$WORK_TREE"
+                # Reset working tree to remove any partial changes
+                "${GIT_CMD[@]}" checkout HEAD -- . >> "$LOG_FILE" 2>&1 || true
+                "${GIT_CMD[@]}" reset >> "$LOG_FILE" 2>&1 || true
+                STASH_REF=""
+                return 0
+            fi
+            
+            # Read conflicts into array (handles filenames with spaces)
+            while IFS= read -r file; do
+                [[ -n "$file" ]] && conflicted_files+=("$file")
+            done <<< "$conflict_list"
+            
+            log INFO "Found ${#conflicted_files[@]} conflicted file(s)."
+            
+            # Create timestamped backup directory
+            local backup_timestamp backup_dir
+            backup_timestamp=$(date +%Y%m%d_%H%M%S)
+            backup_dir="${HOME}/Documents/config_backups/stash_conflict_${backup_timestamp}"
+            
+            if ! mkdir -p "$backup_dir"; then
+                log ERROR "Failed to create backup directory: $backup_dir"
+                log ERROR "Cannot proceed safely. Your changes remain in stash."
+                log INFO "Manual recovery required:"
+                printf '    git --git-dir="%s" --work-tree="%s" stash show -p\n' "$DOTFILES_GIT_DIR" "$WORK_TREE"
+                # Reset working tree to HEAD to remove conflict markers for stability
+                "${GIT_CMD[@]}" checkout HEAD -- . >> "$LOG_FILE" 2>&1 || true
+                "${GIT_CMD[@]}" reset >> "$LOG_FILE" 2>&1 || true
+                STASH_REF=""
+                return 0
+            fi
+            
+            local backup_success=true
+            local file backup_path
+            
+            # ══════════════════════════════════════════════════════════════════
+            # THE EXTRACTION LOOP
+            # For each conflicted file:
+            #   1. Extract clean user stashed version to backup
+            #   2. Reset live file to HEAD (upstream) version
+            # ══════════════════════════════════════════════════════════════════
+            for file in "${conflicted_files[@]}"; do
+                backup_path="${backup_dir}/${file}"
+                
+                # Create parent directories for nested files (CRITICAL)
+                if ! mkdir -p "$(dirname "$backup_path")"; then
+                    log ERROR "Failed to create directory for: $file"
+                    backup_success=false
+                    break
+                fi
+                
+                # Extract clean user stashed version directly from stash blob
+                if ! "${GIT_CMD[@]}" show "stash@{0}:${file}" > "$backup_path" 2>> "$LOG_FILE"; then
+                    log ERROR "Failed to extract stashed version of: $file"
+                    backup_success=false
+                    break
+                fi
+                
+                # Reset live file to HEAD (upstream) version - removes conflict markers
+                # This ensures system configs remain valid and stable
+                if ! "${GIT_CMD[@]}" checkout HEAD -- "$file" >> "$LOG_FILE" 2>&1; then
+                    log ERROR "Failed to reset file to HEAD: $file"
+                    backup_success=false
+                    break
+                fi
+                
+                log RAW "  → Backed up & reset: $file"
+            done
+            
+            if [[ "$backup_success" == true ]]; then
+                # Hard reset git index to clear the conflict state
+                "${GIT_CMD[@]}" reset >> "$LOG_FILE" 2>&1 || true
+                
+                # Drop the stash entry (user data is safely saved in backup folder)
+                if "${GIT_CMD[@]}" stash drop >> "$LOG_FILE" 2>&1; then
+                    log OK "Stash dropped after successful backup."
+                else
+                    log WARN "Could not drop stash (may already be gone)."
+                fi
+                
+                log OK "Your local modifications saved to:"
+                printf '    %s\n' "$backup_dir"
+                log INFO "System configs restored to upstream (stable) versions."
+                log INFO "Merge your changes manually from the backup when ready."
+            else
+                # Backup failed - DO NOT drop the stash
+                log ERROR "Backup failed! Stash preserved for manual recovery."
+                log INFO "Your changes remain in stash. Recover with:"
+                printf '    git --git-dir="%s" --work-tree="%s" stash show -p\n' "$DOTFILES_GIT_DIR" "$WORK_TREE"
+                # Still reset working tree to remove conflict markers for system stability
+                log WARN "Resetting working tree to HEAD to restore system stability..."
+                "${GIT_CMD[@]}" checkout HEAD -- . >> "$LOG_FILE" 2>&1 || true
+                "${GIT_CMD[@]}" reset >> "$LOG_FILE" 2>&1 || true
+            fi
+            
             STASH_REF=""
         fi
     fi
