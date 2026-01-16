@@ -18,8 +18,6 @@ readonly MODULES_DIR="${POWER_SAVING_ROOT}/modules"
 # -----------------------------------------------------------------------------
 
 # 1. Scripts now located inside 'modules'
-readonly DISABLE_ANIM_SCRIPT="${MODULES_DIR}/06_disable_animations.sh"
-readonly TERMINATOR_SCRIPT="${MODULES_DIR}/07_process_terminator.sh"
 readonly ASUS_PROFILE_SCRIPT="${MODULES_DIR}/asus_tuf_profile/quiet_profile_and_keyboard_light.sh"
 
 # 2. External Scripts (These likely remain outside)
