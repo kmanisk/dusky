@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  DUSKY SMART RESTORE & STASH MANAGER
+#  DUSKY SMART RESTORE & STASH MANAGER (v2.4 - Golden Master)
 #  Description: Intelligent interface for managing dotfile backups and stashes.
 #               Distinguishes between auto-updates, recovery snapshots, and
 #               manual edits. Safely restores states even with dirty work trees.
@@ -12,10 +12,13 @@ set -euo pipefail
 # ------------------------------------------------------------------------------
 # CONFIGURATION
 # ------------------------------------------------------------------------------
-readonly GIT_BIN="/usr/bin/git"
 readonly DOTFILES_GIT_DIR="${HOME}/dusky"
 readonly WORK_TREE="${HOME}"
 readonly RESTORE_DIR_BASE="${HOME}/Documents/dusky_restores"
+
+# Validate git binary at script startup to prevent runtime failures
+# Exit code 127 is the standard "command not found" code
+readonly GIT_BIN="$(command -v git)" || { printf 'FATAL: git is not installed.\n' >&2; exit 127; }
 
 # State: Populated by list_stashes(), consumed by main()
 declare -a STASH_LIST=()
@@ -65,11 +68,16 @@ if [[ -f "${DOTFILES_GIT_DIR}/index.lock" ]]; then
     exit 1
 fi
 
+# CRITICAL: Enforce execution from the Work Tree.
+# This ensures 'git stash apply' and relative paths function correctly.
+cd "${WORK_TREE}" || { log_err "Failed to change directory to WORK_TREE: ${WORK_TREE}"; exit 1; }
+
 # ------------------------------------------------------------------------------
 # UI COMPONENTS
 # ------------------------------------------------------------------------------
 print_header() {
-    clear
+    # Clear screen using ANSI escape sequences (faster/safer than spawning 'clear')
+    printf '\033[2J\033[H'
     printf '%s================================================================%s\n' "${C_BLUE}" "${C_RESET}"
     printf '%s   DUSKY SMART RESTORE UTILITY%s\n' "${C_BOLD}${C_MAGENTA}" "${C_RESET}"
     printf '%s   Review, Export, and Restore your System Snapshots%s\n' "${C_DIM}" "${C_RESET}"
@@ -90,24 +98,22 @@ list_stashes() {
     printf '  %s%-5s %-12s %-25s %s%s\n' "${C_DIM}" "ID" "TYPE" "TIMESTAMP/ID" "MESSAGE" "${C_RESET}"
     printf '  %s----------------------------------------------------------------%s\n' "${C_DIM}" "${C_RESET}"
 
-    local i=0
     local line msg_raw msg
     local label color time_display clean_msg
     local tmp_date
+    local stash_count=${#STASH_LIST[@]}
 
-    for line in "${STASH_LIST[@]}"; do
+    # C-style loop for clearer integer handling
+    for ((i = 0; i < stash_count; i++)); do
+        line="${STASH_LIST[i]}"
+
         # --- Pure Bash Parsing ---
-        # Git stash format: "stash@{N}: On <branch>: <message>"
-        #               or: "stash@{N}: WIP on <branch>: <hash> <message>"
-        
-        # 1. Get everything after the stash ref (remove "stash@{N}: ")
+        # 1. Strip stash ref "stash@{0}: "
         msg_raw="${line#*: }"
-
-        # 2. Get the actual message payload (remove branch info "On main: ")
-        #    We keep msg_raw for checking the *type* of stash later.
+        # 2. Strip branch info "On main: "
         msg="${msg_raw#*: }"
 
-        # 3. Trim leading whitespace from the display message
+        # 3. Trim leading whitespace using parameter expansion
         msg="${msg#"${msg%%[![:space:]]*}"}"
 
         # --- Heuristic Analysis ---
@@ -116,7 +122,7 @@ list_stashes() {
         time_display=""
         clean_msg="${msg}"
 
-        if [[ "${msg}" =~ orchestrator-auto-([0-9_\-]+) ]]; then
+        if [[ "${msg}" =~ orchestrator-auto-([0-9_-]+) ]]; then
             label="UPDATE"
             color="${C_CYAN}"
             time_display="${BASH_REMATCH[1]}"
@@ -124,15 +130,13 @@ list_stashes() {
         elif [[ "${msg}" =~ recovery-backup-([0-9]+) ]]; then
             label="RECOVER"
             color="${C_RED}"
-            # Convert epoch to readable, with fallback
             if tmp_date=$(date -d "@${BASH_REMATCH[1]}" +'%Y-%m-%d %H:%M' 2>/dev/null); then
                 time_display="${tmp_date}"
             else
                 time_display="${BASH_REMATCH[1]}"
             fi
             clean_msg="Emergency snapshot from Force Sync"
-        # Check msg_raw because 'WIP on'/'On' was stripped from 'msg'
-        elif [[ "${msg_raw}" == "WIP on "* ]] || [[ "${msg_raw}" == "On "* ]]; then
+        elif [[ "${msg_raw}" == "WIP on "* || "${msg_raw}" == "On "* ]]; then
             label="MANUAL"
             color="${C_BLUE}"
             time_display="--"
@@ -148,8 +152,6 @@ list_stashes() {
             "${color}" "${label}" "${C_RESET}" \
             "${time_display:0:24}" \
             "${C_DIM}" "${clean_msg:0:40}" "${C_RESET}"
-
-        ((++i))
     done
     printf '\n'
 }
@@ -158,11 +160,9 @@ list_stashes() {
 # CORE LOGIC
 # ------------------------------------------------------------------------------
 
-# Resolve stash index to its immutable SHA.
 get_stash_hash() {
     local idx="$1"
     local sha
-
     if ! sha=$(dotgit rev-parse "stash@{${idx}}" 2>/dev/null); then
         log_err "Failed to resolve stash@{${idx}}. It may have been dropped."
         return 1
@@ -170,48 +170,76 @@ get_stash_hash() {
     printf '%s' "${sha}"
 }
 
-# Export stash contents to a timestamped directory for inspection.
+# Bare-Repo Safe Export: Extracts ONLY modified files directly from Object DB
 export_stash() {
     local stash_sha="$1"
     local restore_path="${RESTORE_DIR_BASE}/restored_backup_$(date +%Y%m%d_%H%M%S)"
+    local -a changed_files=()
+    local file target_dir
 
     printf '\n%s[EXPORT MODE]%s\n' "${C_BLUE}" "${C_RESET}"
-    log_info "Preparing to export files from snapshot (${stash_sha:0:12})..."
+    log_info "Analyzing stash contents (${stash_sha:0:12})..."
+
+    # 1. Get the list of modified files in this stash (delta only)
+    mapfile -t changed_files < <(dotgit stash show --name-only "${stash_sha}" 2>/dev/null)
+
+    if [[ ${#changed_files[@]} -eq 0 ]]; then
+        log_warn "This stash appears to be empty or contains no tracked file changes."
+        return 0
+    fi
 
     if ! mkdir -p "${restore_path}"; then
-        log_err "Failed to create directory: ${restore_path}"
+        log_err "Failed to create base directory: ${restore_path}"
         return 1
     fi
 
-    if dotgit archive "${stash_sha}" | tar -x -C "${restore_path}"; then
-        log_ok "Export successful!"
-        printf '\n%s Files are located at:%s\n' "${C_GREEN}" "${C_RESET}"
-        printf '  %s%s%s\n\n' "${C_BOLD}" "${restore_path}" "${C_RESET}"
+    log_info "Exporting ${#changed_files[@]} modified file(s)..."
 
-        local open_choice
-        read -r -p "  View exported files? [y/N] " open_choice
-        if [[ "${open_choice}" =~ ^[Yy]$ ]]; then
-            if command -v yazi &>/dev/null; then
-                # TUI app: runs in current terminal
-                yazi "${restore_path}"
-            elif command -v ranger &>/dev/null; then
-                # TUI app: runs in current terminal
-                ranger "${restore_path}"
-            elif command -v thunar &>/dev/null; then
-                # GUI app: UWSM-compliant launch
-                uwsm-app -- thunar "${restore_path}" &
-                disown
-            else
-                ls -lA "${restore_path}"
+    for file in "${changed_files[@]}"; do
+        # 2. Check if file exists in the stash (it might be a deletion)
+        if ! dotgit cat-file -e "${stash_sha}:${file}" 2>/dev/null; then
+            log_warn "File '${file}' was deleted in this stash. Skipping export."
+            continue
+        fi
+
+        # 3. Create directory structure (Pure Bash Optimization)
+        # Only attempt mkdir if the file is in a subdirectory
+        if [[ "${file}" == */* ]]; then
+            target_dir="${restore_path}/${file%/*}"
+            if ! mkdir -p "${target_dir}"; then
+                log_err "Failed to create directory: ${target_dir}"
+                continue
             fi
         fi
-    else
-        log_err "Export failed. Please check permissions for ${restore_path}."
-        return 1
+
+        # 4. Dump content from the Object DB
+        if dotgit show "${stash_sha}:${file}" > "${restore_path}/${file}"; then
+            printf '    %s•%s %s\n' "${C_DIM}" "${C_RESET}" "${file}"
+        else
+            log_err "Failed to export: ${file}"
+        fi
+    done
+
+    log_ok "Export successful!"
+    printf '\n%s Files are located at:%s\n' "${C_GREEN}" "${C_RESET}"
+    printf '  %s%s%s\n\n' "${C_BOLD}" "${restore_path}" "${C_RESET}"
+
+    local open_choice
+    read -r -p "  View exported files? [y/N] " open_choice
+    if [[ "${open_choice}" =~ ^[Yy]$ ]]; then
+        if command -v yazi &>/dev/null; then
+            yazi "${restore_path}"
+        elif command -v ranger &>/dev/null; then
+            ranger "${restore_path}"
+        elif command -v thunar &>/dev/null; then
+            uwsm-app -- thunar "${restore_path}" &
+            disown
+        else
+            ls -lR "${restore_path}"
+        fi
     fi
 }
 
-# Apply a stash to the working tree, with automatic safety backup for dirty state.
 apply_stash() {
     local stash_sha="$1"
     local confirm
@@ -219,7 +247,7 @@ apply_stash() {
     printf '\n%s[RESTORE MODE]%s\n' "${C_RED}" "${C_RESET}"
     printf '  You are about to overwrite your current configuration with an older snapshot.\n'
 
-    # Check for dirty state
+    # Check for dirty state using bare repo wrapper
     if ! dotgit diff-index --quiet HEAD --; then
         printf '  %s[!] Local changes detected in your working directory.%s\n' "${C_YELLOW}" "${C_RESET}"
         printf '      Applying a stash now would normally fail or cause conflicts.\n'
@@ -248,19 +276,15 @@ apply_stash() {
 
     log_info "Applying snapshot (${stash_sha:0:12})..."
 
-    # Use 'apply' instead of 'pop': keeps the backup in the stack for safety.
     if dotgit stash apply "${stash_sha}"; then
         printf '\n'
         log_ok "Configuration successfully restored!"
         printf '  The stash entry was kept in the list for safety.\n'
-        printf '  If you are happy with the result, you can drop it manually.\n'
     else
         printf '\n'
         log_warn "Restore completed with CONFLICTS."
         printf '  Git could not auto-merge some files.\n'
-        printf '  1. Open the files marked as "modified" to resolve conflicts.\n'
-        printf '  2. Run "git add <file>" when fixed.\n'
-        printf '  3. The backup snapshot is STILL in the stash list.\n'
+        printf '  Check "git status" to see conflicted files.\n'
     fi
 }
 
@@ -269,7 +293,7 @@ apply_stash() {
 # ------------------------------------------------------------------------------
 main() {
     print_header
-    list_stashes # Populates global STASH_LIST
+    list_stashes
 
     local stash_count=${#STASH_LIST[@]}
     local idx
@@ -284,14 +308,12 @@ main() {
         exit 1
     fi
 
-    # Resolve SHA immediately to lock the target.
-    # If we stash (action 1), indices shift, but this SHA remains valid.
     local target_sha
     if ! target_sha=$(get_stash_hash "${idx}"); then
         exit 1
     fi
 
-    printf '\n%sSelected Stash:%s %s\n' "${C_BOLD}" "${C_RESET}" "${STASH_LIST[${idx}]}"
+    printf '\n%sSelected Stash:%s %s\n' "${C_BOLD}" "${C_RESET}" "${STASH_LIST[idx]}"
     printf 'Action:\n'
     printf '  %s[1]%s Overwrite/Restore System Config  %s(Safe Apply)%s\n' "${C_RED}" "${C_RESET}" "${C_DIM}" "${C_RESET}"
     printf '  %s[2]%s Export to Directory              %s(Inspect Files)%s\n' "${C_GREEN}" "${C_RESET}" "${C_DIM}" "${C_RESET}"
