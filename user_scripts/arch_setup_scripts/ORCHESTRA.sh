@@ -101,6 +101,7 @@ INSTALL_SEQUENCE=(
 
 
     "U | 087_hypr_custom_config_setup.sh"
+    "U | 088_hyprctl_reload.sh"
 )
 
 # ==============================================================================

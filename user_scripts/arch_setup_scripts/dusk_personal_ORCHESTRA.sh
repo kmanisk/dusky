@@ -99,6 +99,7 @@ INSTALL_SEQUENCE=(
     "U | 083_set_thunar_terminal_kitty.sh"
     "U | 084_package_removal.sh"
     "U | 087_hypr_custom_config_setup.sh"
+    "U | 088_hyprctl_reload.sh"
 )
 
 # ==============================================================================
