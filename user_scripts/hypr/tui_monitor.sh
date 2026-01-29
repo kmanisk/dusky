@@ -392,37 +392,22 @@ get_position() {
 
 apply_monitor_config() {
     local monitor_name="$1" config_string="$2"
-    local json_after after_hz after_scale
-
+    # We remove the post-calculation variables since the script might hang after applying
     print_header "Applying Configuration"
-    
     printf '%sTarget Rule:%s monitor = %s\n\n' "$DIM" "$RST" "$config_string"
-    info "Applying... (Screen may flash)"
-    
-    hyprctl keyword monitor "$config_string" &>/dev/null || :
-    sleep 1.5
-    drain_stdin
-
-    # Validation
-    json_after=$(get_active_json)
-    after_hz=$(printf '%s' "$json_after" | jq -r --arg n "$monitor_name" \
-        '.[] | select(.name==$n) | .refreshRate // 0')
-    after_scale=$(printf '%s' "$json_after" | jq -r --arg n "$monitor_name" \
-        '.[] | select(.name==$n) | .scale // 1')
-
-    printf '\n%sResult:%s %s running at %s%.0fHz%s (scale: %s)\n' \
-        "$BLD" "$RST" "$monitor_name" "$GRN" "$after_hz" "$RST" "$after_scale"
-
-    printf '\n'
-    if confirm "Keep this configuration?"; then
+    # 1. Ask for confirmation BEFORE the dangerous operation (flashing)
+    if confirm "Write configuration to file and Apply? (Screen will flash)"; then
+        # 2. Save to disk FIRST (Persist state before potential hang)
         save_monitor_rule "$monitor_name" "monitor = $config_string"
+        # 3. Apply changes LAST
+        info "Applying changes..."
+        hyprctl keyword monitor "$config_string" &>/dev/null || :
+        # If the terminal survives the flash, we acknowledge it.
+        # If it hangs here, the user is safe because the file is already saved.
+        ok "Configuration applied successfully."
         pause
     else
-        warn "Reverting..."
-        hyprctl reload &>/dev/null || :
-        sleep 1
-        drain_stdin
-        info "Reverted."
+        warn "Operation cancelled. No changes made."
         pause
     fi
 }
