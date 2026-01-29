@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #==============================================================================
-# Enhanced Rofi Clipboard Manager - FINAL OPTIMIZED VERSION
+# Enhanced Rofi Clipboard Manager - ARCH/HYPRLAND EDITION
 #==============================================================================
 
 set -o nounset
@@ -13,15 +13,11 @@ readonly XDG_CACHE_HOME="${XDG_CACHE_HOME:-${HOME}/.cache}"
 readonly PINS_DIR="${XDG_DATA_HOME}/rofi-cliphist/pins"
 readonly THUMB_DIR="${XDG_CACHE_HOME}/rofi-cliphist/thumbs"
 
-# RESTORED: Icons for UI clarity (The critique removed these)
 readonly PIN_ICON=" "
 readonly IMG_ICON=" "
 
 readonly MAX_PREVIEW_LENGTH=80
 readonly THUMB_SIZE="256x256"
-
-# Rofi Protocol Delimiter (Unit Separator)
-readonly SEP=$'\x1f'
 
 #--- DEPENDENCY CHECK ---
 validate_dependencies() {
@@ -31,7 +27,6 @@ validate_dependencies() {
     done
 
     if ((${#missing[@]} > 0)); then
-        # Print to stderr so it might show in logs, but return failure
         printf 'Error: Missing dependencies: %s\n' "${missing[*]}" >&2
         return 1
     fi
@@ -46,7 +41,6 @@ chmod 700 "${PINS_DIR}" "${THUMB_DIR}"
 #--- UTILS ---
 generate_hash() {
     local input="$1"
-    # Prefer BLAKE2 for speed, fallback to MD5
     if command -v b2sum &>/dev/null; then
         printf '%s' "${input}" | b2sum | cut -c1-16
     else
@@ -58,26 +52,20 @@ create_preview() {
     local content="$1"
     local preview
 
-    # 1. Early Truncation: Don't process 1MB of text if we only show 80 chars
-    # We grab 2x length to account for whitespace we might collapse later
     if ((${#content} > MAX_PREVIEW_LENGTH * 2)); then
         content="${content:0:$((MAX_PREVIEW_LENGTH * 2))}"
     fi
 
-    # 2. Native Bash cleanup (No external `tr` calls)
-    # Replace control chars (newlines, tabs, nulls) with spaces
+    # Native Bash cleanup (No external `tr`)
     preview="${content//[$'\n\r\t\v\f\x00\x1f']/ }"
 
-    # 3. Collapse multiple spaces into one
     while [[ "${preview}" == *"  "* ]]; do
         preview="${preview//  / }"
     done
 
-    # 4. Trim leading/trailing whitespace
     preview="${preview#"${preview%%[![:space:]]*}"}"
     preview="${preview%"${preview##*[![:space:]]}"}"
 
-    # 5. Final Display Truncation
     if ((${#preview} > MAX_PREVIEW_LENGTH)); then
         preview="${preview:0:MAX_PREVIEW_LENGTH}…"
     fi
@@ -89,19 +77,15 @@ ensure_thumbnail() {
     local id="$1"
     local thumb_path="${THUMB_DIR}/${id}.png"
 
-    # Cache hit: Return fast
     if [[ -f "${thumb_path}" ]]; then
         printf '%s' "${thumb_path}"
         return 0
     fi
 
-    # Check for magick before attempting generation
     if ! command -v magick &>/dev/null; then
         return 1
     fi
 
-    # Atomic Write: Write to temp file, then move.
-    # Prevents broken images if script is killed mid-write.
     local tmp_path="${thumb_path}.tmp.$$"
     
     if cliphist decode "${id}" 2>/dev/null \
@@ -112,31 +96,26 @@ ensure_thumbnail() {
         }
     fi
 
-    # Cleanup if failed
     rm -f "${tmp_path}" 2>/dev/null
     return 1
 }
 
 #--- MAIN DISPLAY ---
 display_menu() {
-    # Send headers. We use \000 for null byte to be POSIXly safe in printf format strings.
-    # Format: \000 command \x1f value \n
-    printf '\000message\x1f<b>Enter</b>: Copy  |  <b>ALT+U</b>: Pin  |  <b>ALT+Y</b>: Delete\n'
+    # Added ALT+T instruction to header
+    printf '\000message\x1f<b>Enter</b>: Copy | <b>Alt+U</b>: Pin | <b>Alt+Y</b>: Del | <b>Alt+T</b>: Wipe\n'
     printf '\000use-hot-keys\x1ftrue\n'
     printf '\000keep-selection\x1ftrue\n'
 
     # --- 1. Pinned Items ---
     local pin_file filename content preview
-    # Find pins, sort by mtime (newest first), read safely
     while IFS= read -r pin_file; do
         [[ -r "${pin_file}" ]] || continue
 
         filename="${pin_file##*/}"
-        # Safe read using redirection
         content=$(<"${pin_file}") || continue
         preview=$(create_preview "${content}")
 
-        # Rofi Row: Icon + Text + Invisible Info
         printf '%s %s\000info\x1fpin:%s\n' "${PIN_ICON}" "${preview}" "${filename}"
     done < <(
         find "${PINS_DIR}" -maxdepth 1 -name '*.pin' -type f \
@@ -150,26 +129,21 @@ display_menu() {
     while IFS= read -r line; do
         [[ -z "${line}" ]] && continue
 
-        # Split ID (everything before first tab) and Content
         id="${line%%$'\t'*}"
         rest="${line#*$'\t'}"
 
-        # Native Bash Regex for binary detection (Case Insensitive)
         rest_lower="${rest,,}"
         if [[ "${rest_lower}" =~ binary.*(png|jpg|jpeg|bmp|webp) ]]; then
             thumb_path=$(ensure_thumbnail "${id}") || thumb_path=""
 
             if [[ -n "${thumb_path}" ]]; then
-                # IMAGE: Send icon path via \000icon protocol
                 printf '%s: %s [Image]\000icon\x1f%s\x1finfo\x1fhist:%s\n' \
                     "${id}" "${IMG_ICON}" "${thumb_path}" "${line}"
             else
-                # BINARY (No thumb): Text fallback
                 printf '%s: [Binary] (No Preview)\000info\x1fhist:%s\n' \
                     "${id}" "${line}"
             fi
         else
-            # TEXT ITEM
             display_text=$(create_preview "${rest}")
             printf '%s: %s\000info\x1fhist:%s\n' "${id}" "${display_text}" "${line}"
         fi
@@ -182,7 +156,19 @@ handle_selection() {
     local action="${ROFI_RETV:-0}"
     local info="${ROFI_INFO:-}"
 
-    # If nothing selected, just show menu
+    # --- GLOBAL ACTION: WIPE CLIPBOARD (Alt+T / Custom Key 3) ---
+    # We handle this first so it works regardless of what row is highlighted
+    if ((action == 12)); then
+        # Wipe cliphist database
+        cliphist wipe 2>/dev/null
+        # Clear image cache to stay in sync and save space
+        rm -f "${THUMB_DIR}"/*.png
+        # Do NOT touch PINS_DIR
+        display_menu
+        return 0
+    fi
+
+    # If nothing selected (and not a global action), just show menu
     if [[ -z "${selection}" ]]; then
         display_menu
         return 0
@@ -194,7 +180,7 @@ handle_selection() {
     # Handle Pins
     if [[ "${type}" == "pin" ]]; then
         case "${action}" in
-            1)  # Enter: Copy using input redirection (avoids cat)
+            1)  # Enter: Copy using input redirection
                 [[ -r "${PINS_DIR}/${data}" ]] && wl-copy < "${PINS_DIR}/${data}"
                 ;;
             10|11) # Alt+U/Y: Delete pin
