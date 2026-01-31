@@ -185,19 +185,11 @@ EOF
     printf '  %s[2]%s  0.5  %s(Balanced)%s\n' "$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET" >&2
     printf '  %s[3]%s  0.6  %s(Light-mode friendly)%s\n' "$C_CYAN" "$C_RESET" "$C_DIM" "$C_RESET" >&2
     printf '  %s[4]%s  Custom\n\n' "$C_CYAN" "$C_RESET" >&2
-
-    printf '%sChoice (or value)%s [%s2%s]: ' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" >&2
+    
+    printf '%sChoice%s [%s2%s]: ' "$C_BOLD" "$C_RESET" "$C_GREEN" "$C_RESET" >&2
     local choice
     read -r choice
     choice="${choice:-2}"
-
-    # === PATCH START: Allow direct float input ===
-    # Regex checks for: .5, 0.5, 1.0, 0, 1
-    if [[ "$choice" =~ ^0*\.[0-9]+$|^[01](\.0*)?$ ]]; then
-        printf '%s' "$choice"
-        return 0
-    fi
-    # === PATCH END ===
     
     case "$choice" in
         1) printf '0.4' ;;
