@@ -42,7 +42,7 @@
         "custom/theme", 
         "custom/inhibit-suspend", 
         "custom/notification",
-       // "tray",
+        "tray",
         "custom/power"
     ],
 
