@@ -16,6 +16,8 @@ readonly BASE_DIR="$HOME/contained_apps/uv/$APP_NAME"
 readonly VENV_DIR="$BASE_DIR/.venv"
 readonly RUNNER_SCRIPT="$BASE_DIR/runner.py"
 readonly CONFIG_DIR="$HOME/.config/wayclick"
+# [STATE FILE IMPLEMENTATION]
+readonly STATE_FILE="$HOME/.config/dusky/settings/wayclick"
 
 # --- ANSI COLORS ---
 readonly C_RED=$'\033[1;31m'
@@ -26,8 +28,25 @@ readonly C_YELLOW=$'\033[1;33m'
 readonly C_DIM=$'\033[2m'
 readonly C_RESET=$'\033[0m'
 
+# --- STATE MANAGEMENT ---
+update_state() {
+    local status="$1"
+    local dir
+    dir="$(dirname "$STATE_FILE")"
+    
+    # Ensure directory exists
+    if [[ ! -d "$dir" ]]; then
+        mkdir -p "$dir"
+    fi
+    
+    # Write atomic state
+    echo "$status" > "$STATE_FILE"
+}
+
 cleanup() {
     tput cnorm 2>/dev/null || true
+    # [STATE FILE] Always set to False on exit (crash, kill, or toggle)
+    update_state "False"
 }
 
 # --- CHECKS & TOGGLE LOGIC ---
@@ -406,6 +425,9 @@ printf "%b[RUN]%b Starting engine...\n" "${C_BLUE}" "${C_RESET}"
 if ! $INTERACTIVE; then
     notify_user "Enabled"
 fi
+
+# [STATE FILE] Mark as True immediately before execution
+update_state "True"
 
 # Execute using the VENV python directly, with -O to remove assertions
 # We pass the trackpad toggle as an environment variable
