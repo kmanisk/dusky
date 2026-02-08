@@ -53,7 +53,7 @@ pkgs_dev=(
 
 # Group 10: Multimedia
 pkgs_multimedia=(
-"ffmpeg" "mpv" "mpv-mpris" "swappy" "swayimg" "resvg" "imagemagick" "libheif" "obs-studio" "audacity" "handbrake" "guvcview" "ffmpegthumbnailer" "krita" "grim" "slurp" "wl-clipboard" "cliphist" "tesseract-data-eng"
+"ffmpeg" "mpv" "mpv-mpris" "swappy" "swayimg" "resvg" "imagemagick" "libheif" "obs-studio" "gpu-screen-recorder" "audacity" "handbrake" "guvcview" "ffmpegthumbnailer" "krita" "grim" "slurp" "wl-clipboard" "cliphist" "tesseract-data-eng"
 )
 
 # Group 11: Sys Admin
