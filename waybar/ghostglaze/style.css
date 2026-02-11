@@ -25,6 +25,8 @@ window#waybar > box {
     border-radius: 20px;
     margin: 4px 6px;
     padding: 2px 6px;
+    /* Soft shadow for depth */
+    
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -39,16 +41,12 @@ window#waybar > box {
     margin: 6px 4px 6px 4px;
     border-radius: 18px;
     font-size: 16px;
-    box-shadow: 0 0 10px alpha(@primary, 0.3);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
    PACMAN "GHOST" WORKSPACES (COMPROMISED LOGIC)
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   PACMAN "GHOST" WORKSPACES - SAFE VERSION (No !important)
-   ───────────────────────────────────────────────────────────────────────────── */
 
 #workspaces {
     background: rgba(255, 255, 255, 0.05); /* Very light glass */
@@ -56,6 +54,7 @@ window#waybar > box {
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 2px 6px;
+    border-bottom: 2px solid alpha(@primary, 0.3);
 }
 
 #workspaces button {
@@ -68,13 +67,12 @@ window#waybar > box {
 /* 1. STATE: EMPTY GHOSTS (Default inactive colors) */
 /* These colors only show when the workspace has NO apps and is NOT focused */
 
-#workspaces button.empty:nth-child(1) { color: alpha(@tertiary, 0.3); } /* Blinky Red */
-#workspaces button.empty:nth-child(2) { color: alpha(@tertiary, 0.3); } /* Inky Cyan */
-#workspaces button.empty:nth-child(3) { color: alpha(@tertiary, 0.3); } /* Pinky Pink */
-#workspaces button.empty:nth-child(4) { color: alpha(@tertiary, 0.3); } /* Pac Yellow */
-#workspaces button.empty:nth-child(5) { color: alpha(@tertiary, 0.3); } /* Clyde Orange */
+#workspaces button.empty:nth-child(1) { color: alpha(@tertiary, 0.3); } 
+#workspaces button.empty:nth-child(2) { color: alpha(@tertiary, 0.3); } 
+#workspaces button.empty:nth-child(3) { color: alpha(@tertiary, 0.3); } 
+#workspaces button.empty:nth-child(4) { color: alpha(@tertiary, 0.3); } 
+#workspaces button.empty:nth-child(5) { color: alpha(@tertiary, 0.3); } 
 
-/* 2. STATE: COMPROMISED BLUE (Occupied but not focused) */
 /* This rule targets any workspace that HAS an app open */
 #workspaces button:not(.empty) {
     color: @on_surface; 
@@ -82,7 +80,7 @@ window#waybar > box {
 }
 
 /* 3. STATE: ACTIVE (PACMAN) */
-/* We put this LAST. Because it is last, it overrides the Blue and the Ghost colors */
+
 window#waybar #workspaces button.active {
     color: @primary; 
     background: alpha(@primary, 0.2);
@@ -99,7 +97,7 @@ window#waybar #workspaces button.active {
 
 /* Music/MPRIS */
 #mpris {
-    background: alpha(@secondary_container, 0.2);
+    background: alpha(@secondary_container, 0.1);
     color: @secondary;
     padding: 0 12px;
     margin: 4px 4px;
@@ -175,25 +173,6 @@ window#waybar #workspaces button.active {
    RIGHT MODULES
    ───────────────────────────────────────────────────────────────────────────── */
 
-/* Common style for right-side bubbles */
-#battery, #tray {
-    padding: 0 10px;
-    margin: 4px 2px;
-    border-radius: 10px;
-    background: alpha(@surface_container, 0.3);
-    color: @on_surface_variant;
-    transition: all 0.2s ease;
-}
-
-#battery:hover {
-    background: alpha(@surface_container_highest, 0.6);
-    color: @primary;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   NETWORK, PULSEAUDIO, BACKLIGHT (UNIFIED MATUGEN GLASS)
-   ───────────────────────────────────────────────────────────────────────────── */
-
 /* Common base for all right-side modules */
 #network, 
 #pulseaudio, 
@@ -205,14 +184,14 @@ window#waybar #workspaces button.active {
     transition: all 0.3s ease-in-out;
 }
 
-/* 1. NETWORK - Tertiary Accent */
+/* 1. NETWORK - Secondary Accent */
 #network {
-    color: @tertiary;
+    color: @secondary;
     padding: 0px 12px 2px 8px;
     margin: 4px 2px;
     border-radius: 10px;
     font-size: 16px;
-    border-bottom: 2px solid alpha(@primary, 0.2);
+    border-bottom: 2px solid alpha(@secondary, 0.2);
 }
 
 #network.disconnected {
@@ -316,16 +295,35 @@ window#waybar #workspaces button.active {
     }
 }
 
-#battery {
-    color: @primary;
-    border-bottom: 2px solid alpha(@primary, 0.2);
+/* Common style for right-side bubbles */
+#battery, #tray {
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    background: alpha(@surface_container, 0.3); /* Consistent Glass background */
+    transition: all 0.3s ease-in-out;
 }
 
 /* Battery Dynamic Styling */
+
+#battery:hover {
+    background: alpha(@surface_container_highest, 0.6);
+    color: @primary;
+}
+
+#battery {
+    color: @primary;
+    background: alpha(@surface_container, 0.3);
+    border-bottom: 2px solid alpha(@primary, 0.2);
+}
+
 #battery.charging, #battery.plugged {
     color: @primary;
-    background: alpha(@primary_container, 0.4);
-    border-bottom: 2px solid alpha(@primary, 0.3);
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
+    background: alpha(@surface_container, 0.3);
+    border-bottom: 2px solid alpha(@primary, 0.2);
 }
 
 #battery.critical:not(.charging) {
@@ -337,8 +335,11 @@ window#waybar #workspaces button.active {
 
 /* System Tray Glass */
 #tray {
-    margin-left: 6px;
+    
     color: @primary;
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 10px;
     border-bottom: 2px solid alpha(@primary, 0.2);
     background: alpha(@surface_container_low, 0.2);
 }
