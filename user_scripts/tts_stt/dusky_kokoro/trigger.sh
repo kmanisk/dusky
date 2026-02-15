@@ -1,63 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
-# ==============================================================================
-# DUSKY KOKORO INSTALLER V30 (StreamID Support + Smart Trigger)
-# ==============================================================================
-
-readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly ENV_DIR="$HOME/contained_apps/uv/dusky_kokoro"
-readonly MODEL_DIR="$ENV_DIR/models"
-readonly TRIGGER_DIR="$HOME/user_scripts/tts_stt/dusky_kokoro"
-readonly TARGET_TRIGGER="$TRIGGER_DIR/trigger.sh"
-
-readonly MODEL_URL="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/kokoro-v0_19.onnx"
-readonly VOICES_URL="https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files/voices.bin"
-
-echo ":: [V30] Initializing Dusky Kokoro Setup..."
-
-mkdir -p "$ENV_DIR" "$MODEL_DIR" "$TRIGGER_DIR"
-
-if ! command -v uv &> /dev/null; then
-    echo ":: Installing uv..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    source "$HOME/.cargo/env"
-fi
-
-# Ensure the Python script is present before proceeding
-if [[ -f "$SCRIPT_DIR/dusky_main.py" ]]; then
-    cp "$SCRIPT_DIR/dusky_main.py" "$ENV_DIR/"
-    echo ":: dusky_main.py deployed."
-else
-    echo ":: ERROR: dusky_main.py not found in current directory."
-    exit 1
-fi
-
-cd "$ENV_DIR"
-
-echo ":: Configuring Python Environment..."
-uv init --python 3.12 --no-workspace 2>/dev/null || true
-
-echo ":: Installing Dependencies..."
-# Note: uuid is standard lib, no need to add.
-uv add "kokoro-onnx[gpu]" "soundfile" "numpy" \
-       "nvidia-cuda-runtime-cu12" \
-       "nvidia-cublas-cu12" \
-       "nvidia-cudnn-cu12" \
-       "nvidia-cufft-cu12"
-
-if [[ ! -f "$MODEL_DIR/kokoro-v0_19.onnx" ]]; then
-    echo ":: Downloading ONNX Model..."
-    curl -L "$MODEL_URL" -o "$MODEL_DIR/kokoro-v0_19.onnx"
-fi
-if [[ ! -f "$MODEL_DIR/voices.bin" ]]; then
-    echo ":: Downloading Voices..."
-    curl -L "$VOICES_URL" -o "$MODEL_DIR/voices.bin"
-fi
-
-echo ":: Generating V30 Smart Trigger..."
-cat << 'EOF' > "$TARGET_TRIGGER"
-#!/usr/bin/env bash
 # Dusky Kokoro Trigger V30
 # Features: Process Verification, Hard Kill, Debug Recovery
 
@@ -274,7 +215,3 @@ if [[ -n "$INPUT_TEXT" ]]; then
 else
     notify "Kokoro" "Clipboard empty"
 fi
-EOF
-
-chmod +x "$TARGET_TRIGGER"
-echo ":: Setup Complete. Trigger: $TARGET_TRIGGER"
