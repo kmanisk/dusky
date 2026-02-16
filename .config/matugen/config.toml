@@ -93,6 +93,10 @@ pkill -SIGUSR1 kitty || true
 input_path = '~/.config/matugen/templates/opencode-colors.json'
 output_path = '~/.config/opencode/generated/opencode.json'
 
+[templates.vscode]
+input_path = '~/.config/matugen/templates/vscode.json'
+output_path = '~/.config/VSCodium/User/settings.json'
+
 # [templates.alacritty]
 # input_path  = '~/.config/matugen/templates/alacritty.toml'
 # output_path = '~/.config/matugen/generated/alacritty-colors.toml'
