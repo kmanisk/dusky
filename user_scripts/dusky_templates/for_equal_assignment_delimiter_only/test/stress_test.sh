@@ -1,23 +1,116 @@
 #!/usr/bin/env bash
 # -----------------------------------------------------------------------------
-# Dusky TUI Engine - Master v3.9.0 (EXTREME STRESS EDITION)
+# DUSKY TUI ENGINE - EXTREME STRESS TEST & VALIDATION SUITE
 # -----------------------------------------------------------------------------
-# Target: Arch Linux / Hyprland / UWSM / Wayland
+# Based on Engine Master v3.9.5
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
 shopt -s extglob
 
 # =============================================================================
-# ▼ USER CONFIGURATION (STRESS TEST GENERATOR) ▼
+# ▼ STRESS TEST CONFIGURATION & SETUP ▼
 # =============================================================================
 
-# CONFIGURATION
+# 1. GENERATE THE EXTREME CONFIGURATION FILE
 declare -r CONFIG_FILE="./stress_test_extreme.conf"
-declare -r APP_TITLE="EXTREME STRESS SUITE"
-declare -r APP_VERSION="v3.9.0 (MAX_LOAD)"
 
-# Dimensions & Layout
+cat > "$CONFIG_FILE" <<EOF
+# --- DUSKY EXTREME CONFIG ---
+# Root level options (No block)
+performance = on
+root_timeout = 5000
+root_hex =#FF00FF  #testhign this shit #what#what
+
+# --- TAB 1: THE ABYSS (Deep Nesting) ---
+level_0 {
+    val_l0 = "surface"
+    level_1 {
+        val_l1 = "shallow"
+        level_2 {
+            val_l2 = "medium"
+            level_3 {
+                val_l3 = "deep"
+                level_4 {
+                    val_l4 = "abyssal"
+                    level_5 {
+                         val_l5 = "hadal"
+                         # Trap: braces in comments { } should be ignored
+                         val_l6 = "void"
+                    }
+                }
+            }
+        }
+    }
+}
+
+# --- TAB 2: MINEFIELD (Parser Traps) ---
+traps {
+    octal_08 = 08
+    octal_09 = 09
+    float_micro = 0.00001
+    float_neg = -50.5
+    # The parser should handle this
+    val_empty = 
+}
+
+# --- TAB 4: PALETTE (20+ Hex Edge Cases) ---
+colors {
+    # Standard
+    hex_std = #ffffff
+    hex_short = #fff
+    hex_caps = #AABBCC
+    hex_mixed = #1a2B3c
+    
+    # Comments
+    hex_comment_spaced = #ff0000 # comment
+    hex_comment_tight = #00ff00#comment
+    
+    # Quotes (Parser should preserve these if simple)
+    hex_quoted_dbl = "#123456"
+    hex_quoted_sgl = '#654321'
+    
+    # Formats
+    hex_legacy_0x = 0xff00ff
+    hex_rgb = rgb(10,20,30)
+    hex_rgba = rgba(10,20,30,0.5)
+    hex_word = #deadbeef
+    hex_alpha = #112233aa
+    
+    # Spacing Traps
+    hex_space_after = # 998877
+    hex_leading_space =    #111111
+    
+    # Nested Colors
+    scheme_dark {
+        bg = #000000
+        fg = #ffffff
+    }
+}
+
+# --- TAB 0: THE WALL (Massive Block) ---
+the_wall {
+EOF
+
+# Append 250 items to 'the_wall'
+for (( i=0; i<250; i++ )); do
+    echo "    wall_item_${i}=${i}" >> "$CONFIG_FILE"
+done
+echo "}" >> "$CONFIG_FILE"
+
+# Append Menu items
+echo "menus {" >> "$CONFIG_FILE"
+echo "    # Submenu items defined here" >> "$CONFIG_FILE"
+echo "    deep_control_l5 = false" >> "$CONFIG_FILE"
+echo "    deep_control_l6 = false" >> "$CONFIG_FILE"
+echo "}" >> "$CONFIG_FILE"
+
+
+# 2. DEFINE THE ENGINE CONFIGURATION
+declare -r APP_TITLE="EXTREME STRESS SUITE"
+declare -r APP_VERSION="v3.9.5-MAX"
+
+# Standard Dimensions
 declare -ri MAX_DISPLAY_ROWS=14
 declare -ri BOX_INNER_WIDTH=76
 declare -ri ADJUST_THRESHOLD=38
@@ -27,191 +120,82 @@ declare -ri HEADER_ROWS=4
 declare -ri TAB_ROW=3
 declare -ri ITEM_START_ROW=$(( HEADER_ROWS + 1 ))
 
-# Defined Tabs (6 Tabs to test overflow and rendering)
-declare -ra TABS=("The Wall" "The Abyss" "Minefield" "Menus" "Palette" "Void")
+# 3. DYNAMIC TABS
+# We specifically order these to test overflow and logical grouping
+declare -ra TABS=("The Wall" "The Abyss" "Minefield" "Menus" "Palette" "Root" "Void" "Overflow 1" "Overflow 2" "Overflow 3" "Overflow 4")
 
-# --- STRESS CONFIG GENERATOR ---
-generate_stress_config() {
-    if [[ -f "$CONFIG_FILE" ]]; then return 0; fi
-    
-    printf "Generating stress_test_extreme.conf... "
-    cat > "$CONFIG_FILE" << 'EOF'
-# -----------------------------------------------------------------------------
-# DUSKY EXTREME STRESS CONFIGURATION
-# -----------------------------------------------------------------------------
-
-mouse = swipe # options: swipe, click, buttons
-
-# [TAB 0] THE WALL (Massive Block)
-# 250 Items will be injected here dynamically
-mass_block {
-    wall_item_1 = 1
-}
-
-# [TAB 1] THE ABYSS (Deep Nesting)
-# Testing Hyprland-style nesting depth
-level_0 {
-    # Depth 1
-    val_l1 = 10
-    
-    level_1 {
-        # Depth 2
-        val_l2 = 20
-        
-        level_2 {
-            # Depth 3
-            val_l3 = 30
-            
-            level_3 {
-                # Depth 4 (Standard Hyprland limit is usually around here)
-                val_l4 = 40
-                
-                level_4 {
-                    # Depth 5
-                    val_l5 = 50
-                    
-                    level_5 {
-                        # Depth 6 (Extreme)
-                        val_l6 = 60
-                        deep_bool = true
-                    }
-                }
-            }
-        }
-    }
-}
-
-# [TAB 2] MINEFIELD (Parser Traps)
-traps {
-    # TRAP 1: Comments with braces
-    # The parser uses brace counting. If this logic is weak,
-    # these comments will break the block depth calculation.
-    # { 
-    #   ignore_me = true
-    # }
-    # } } }
-
-    # TRAP 2: Octal confusion
-    # Bash treats 08 as invalid octal. Engine must handle this.
-    val_octal_07 = 07
-    val_octal_08 = 08
-    val_octal_09 = 09
-    
-    # TRAP 3: Floating point precision
-    val_float_std = 1.5
-    val_float_neg = -50.555
-    val_float_micro = 0.00001
-    val_float_huge = 999999.99
-    
-    # TRAP 4: Unset and Empty
-    val_empty = ""
-    # val_missing is not defined in file at all
-}
-
-# [TAB 4] PALETTE (Hex/Hash Edge Cases)
-colors {
-    # Standard Hex
-    col_std = 0xff112233
-    
-    # Hash without space (Should work)
-    col_hash_nospace=#aabbcc
-    
-    # Hash WITH space (Ambiguous in Bash/Awk)
-    # Parser logic: "sub(/[[:space:]]+#.*$/, "", val)"
-    # This implies space+hash is treated as a comment!
-    # So this value should be read as empty/unset by the engine.
-    col_hash_space = #ddeeff
-}
-EOF
-
-    # Inject 250 items for "The Wall"
-    local _mass_tmp
-    _mass_tmp=$(mktemp)
-    
-    awk '
-    /wall_item_1/ {
-        print "    wall_item_1 = 1"
-        for (i=2; i<=250; i++) {
-            printf "    wall_item_%d = %d\n", i, i
-        }
-        next
-    }
-    { print }
-    ' "$CONFIG_FILE" > "$_mass_tmp"
-    cat "$_mass_tmp" > "$CONFIG_FILE"
-    rm -f "$_mass_tmp"
-    echo "Done."
-}
-
-# Item Registration
+# 4. REGISTER ITEMS PROGRAMMATICALLY
 register_items() {
-    # Ensure config exists
-    generate_stress_config
-
     # --- TAB 0: THE WALL (250 Items) ---
-    # Tests scrolling performance, array limits, and rendering speed.
-    local i
-    for (( i=1; i<=250; i++ )); do
-        register 0 "Wall Item #$i" "wall_item_$i|int|mass_block|0|9999|1" "$i"
+    for (( i=0; i<250; i++ )); do
+        register 0 "Wall Item $i" "wall_item_${i}|int|the_wall|0|1000|1" "$i"
     done
-    
+
     # --- TAB 1: THE ABYSS (Deep Nesting) ---
-    # Tests parsing stack depth and variable retrieval from deep scopes.
-    # Note: The engine keys items by "key|immediate_parent_block".
-    register 1 "Level 1 (Depth 1)" 'val_l1|int|level_0|0|100|1' "10"
-    register 1 "Level 2 (Depth 2)" 'val_l2|int|level_1|0|100|1' "20"
-    register 1 "Level 3 (Depth 3)" 'val_l3|int|level_2|0|100|1' "30"
-    register 1 "Level 4 (Depth 4)" 'val_l4|int|level_3|0|100|1' "40"
-    register 1 "Level 5 (Depth 5)" 'val_l5|int|level_4|0|100|1' "50"
-    register 1 "Level 6 (Depth 6)" 'val_l6|int|level_5|0|100|1' "60"
-    register 1 "Deep Toggle"       'deep_bool|bool|level_5|||'  "false"
-    register 1 "Mouse Mode"        'mouse|cycle||swipe,click,buttons||' "swipe"
+    register 1 "Level 0 (Surface)" "val_l0|cycle|level_0|surface,diving||" "surface"
+    register 1 "Level 1 (Shallow)" "val_l1|cycle|level_1|shallow,deeper||" "shallow"
+    register 1 "Level 2 (Medium)"  "val_l2|cycle|level_2|medium,darker||" "medium"
+    register 1 "Level 3 (Deep)"    "val_l3|cycle|level_3|deep,abyss||" "deep"
+    register 1 "Level 4 (Abyssal)" "val_l4|cycle|level_4|abyssal,void||" "abyssal"
+    register 1 "Level 5 (Hadal)"   "val_l5|cycle|level_5|hadal,crush||" "hadal"
+    register 1 "Level 6 (Depth 6)" "val_l6|cycle|level_5|void,singularity||" "void" # Note: block is level_5 because l6 is inside l5
 
-    # --- TAB 2: MINEFIELD (Edge Cases) ---
-    register 2 "Octal 07 (Safe)"   'val_octal_07|int|traps|0|20|1' "7"
-    register 2 "Octal 08 (Trap)"   'val_octal_08|int|traps|0|20|1' "8"
-    register 2 "Octal 09 (Trap)"   'val_octal_09|int|traps|0|20|1' "9"
+    # --- TAB 2: MINEFIELD (Parser Traps) ---
+    register 2 "Octal 08 (Trap)"     'octal_08|int|traps|0|100|1' "08"
+    register 2 "Octal 09 (Trap)"     'octal_09|int|traps|0|100|1' "09"
+    register 2 "Float Micro"         'float_micro|float|traps|0.000001|1.0|0.000005' "0.00001"
+    register 2 "Float Negative"      'float_neg|float|traps|-100.0|0.0|0.5' "-50.5"
+    register 2 "Explicit Empty"      'val_empty|cycle|traps|one,two||' "one"
+    register 2 "Missing Key"         'val_missing|bool||||' "true"
+
+    # --- TAB 3: MENUS (Drill Down) ---
+    register 3 "Deep Controls >"     'submenu_id|menu||||' ""
     
-    register 2 "Float Negative"    'val_float_neg|float|traps|-100.0|0.0|0.5' "-50.0"
-    register 2 "Float Micro"       'val_float_micro|float|traps|0.0|1.0|0.00001' "0.00001"
-    register 2 "Float Huge"        'val_float_huge|float|traps|0.0|1000000.0|100.5' "0.0"
+    # Submenu items (Re-using abyss variables to test context switching)
+    register_child "submenu_id" "Deep Value L5" "val_l5|cycle|level_5|hadal,crush||" "hadal"
+    register_child "submenu_id" "Deep Value L6" "val_l6|cycle|level_5|void,singularity||" "void"
     
-    # Empty string handling
-    register 2 "Explicit Empty"    'val_empty|cycle|traps|one,two,three||' "one"
-    # Key does not exist in file
-    register 2 "Missing Key"       'val_missing|bool|traps|||' "true"
+    # --- TAB 4: PALETTE (20 Hex Edge Cases) ---
+    register 4 "Hex Standard"        'hex_std|cycle|colors|#ffffff,#000000||' "#ffffff"
+    register 4 "Hex Short"           'hex_short|cycle|colors|#fff,#000||' "#fff"
+    register 4 "Hex Caps"            'hex_caps|cycle|colors|#AABBCC,#112233||' "#AABBCC"
+    register 4 "Hex Mixed"           'hex_mixed|cycle|colors|#1a2B3c,#9z9z9z||' "#1a2B3c"
+    register 4 "Hex Comment Spc"     'hex_comment_spaced|cycle|colors|#ff0000,#00ff00||' "#ff0000"
+    register 4 "Hex Comment Tgt"     'hex_comment_tight|cycle|colors|#00ff00,#ff0000||' "#00ff00"
+    register 4 "Hash Space (Trap)"   'hex_space_after|cycle|colors|# 998877,# 111111||' "# 998877"
+    register 4 "Hash Leading"        'hex_leading_space|cycle|colors|#111111,#222222||' "#111111"
+    register 4 "Hex Quoted Dbl"      'hex_quoted_dbl|cycle|colors|"#123456","#654321"||' "\"#123456\""
+    register 4 "Hex Quoted Sgl"      'hex_quoted_sgl|cycle|colors|'\'#654321\'','\'#123456\''||' "'#654321'"
+    register 4 "Legacy 0x"           'hex_legacy_0x|cycle|colors|0xff00ff,0x00ff00||' "0xff00ff"
+    register 4 "RGB"                 'hex_rgb|cycle|colors|rgb(10,20,30),rgb(0,0,0)||' "rgb(10,20,30)"
+    register 4 "RGBA"                'hex_rgba|cycle|colors|rgba(10,20,30,0.5),rgba(0,0,0,1)||' "rgba(10,20,30,0.5)"
+    register 4 "Word Hex"            'hex_word|cycle|colors|#deadbeef,#c0ffee||' "#deadbeef"
+    register 4 "Alpha Hex"           'hex_alpha|cycle|colors|#112233aa,#aabbccdd||' "#112233aa"
+    register 4 "Nested BG"           'bg|cycle|scheme_dark|#000000,#111111||' "#000000"
+    register 4 "Nested FG"           'fg|cycle|scheme_dark|#ffffff,#eeeeee||' "#ffffff"
 
-    # --- TAB 3: MENUS (Context Switching) ---
-    # Menu 1: Controls specific deep items
-    register 3 "Deep Controls >"   'menu_deep|menu||||' ""
-    register_child "menu_deep" "Deep Value L5" 'val_l5|int|level_4|0|100|5' "50"
-    register_child "menu_deep" "Deep Value L6" 'val_l6|int|level_5|0|100|5' "60"
-    
-    # Menu 2: Controls colors (Cross-referencing logic)
-    register 3 "Color Setup >"     'menu_colors|menu||||' ""
-    register_child "menu_colors" "Standard Hex" 'col_std|cycle|colors|0xff112233,0xffffffff||' "0xff112233"
-    register_child "menu_colors" "Hash NoSpace" 'col_hash_nospace|cycle|colors|#aabbcc,#ffffff||' "#aabbcc"
+    # --- TAB 5: ROOT (Root level items) ---
+    register 5 "Root Performance"    'performance|cycle||on,off||' "on"
+    register 5 "Root Timeout"        'root_timeout|int||0|10000|100' "5000"
+    register 5 "Root Hex"            'root_hex|cycle||#FF00FF,#00FF00||' "#FF00FF"
 
-    # Menu 3: Broken/Empty Menu
-    register 3 "Empty Menu >"      'menu_empty|menu||||' ""
-
-    # --- TAB 4: PALETTE (Hash parsing) ---
-    register 4 "Std Hex (0x)"      'col_std|cycle|colors|0xff112233,0xff000000||' "0xff112233"
-    register 4 "Hash NoSpace"      'col_hash_nospace|cycle|colors|#aabbcc,#112233||' "#aabbcc"
-    # This is expected to show as UNSET or default because " = #..." is stripped as comment
-    register 4 "Hash Space (Trap)" 'col_hash_space|cycle|colors|#ddeeff,#223344||' "#ddeeff"
-
-    # --- TAB 5: VOID ---
+    # --- TAB 6: VOID (Empty) ---
     # Intentionally empty to test empty list rendering
+    
+    # --- OVERFLOW TABS ---
+    register 7 "Overflow Item 1"     'of_1|bool|misc|||' "true"
 }
 
-# Post-Write Hook
 post_write_action() {
-    : # No-op for stress test
+    :
 }
 
 # =============================================================================
-# ▲ END OF USER CONFIGURATION (CORE ENGINE BELOW) ▲
+# ▲ END OF USER CONFIGURATION ▲
+# =============================================================================
+
+# =============================================================================
+# ▼ ENGINE CORE (UNTOUCHED LOGIC FROM TEMPLATE) ▼
 # =============================================================================
 
 # --- Pre-computed Constants ---
@@ -249,6 +233,7 @@ declare -i CURRENT_TAB=0
 declare -i SCROLL_OFFSET=0
 declare -ri TAB_COUNT=${#TABS[@]}
 declare -a TAB_ZONES=()
+declare -i TAB_SCROLL_START=0   # <--- ADDED: For sliding tabs
 declare ORIGINAL_STTY=""
 
 # View State
@@ -257,12 +242,12 @@ declare CURRENT_MENU_ID=""     # ID of the currently open menu
 declare -i PARENT_ROW=0        # Saved row to return to
 declare -i PARENT_SCROLL=0     # Saved scroll to return to
 
-# Scroll State Globals (Explicitly declared)
-declare -i _vis_start=0
-declare -i _vis_end=0
-
 # Temp file global
 declare _TMPFILE=""
+
+# --- Click Zones for Arrows (ADDED) ---
+declare LEFT_ARROW_ZONE=""
+declare RIGHT_ARROW_ZONE=""
 
 # --- Data Structures ---
 declare -A ITEM_MAP=()
@@ -315,7 +300,7 @@ strip_ansi() {
 
 register() {
     local -i tab_idx=$1
-    local label=$2 config=$3 default_val=${4:-}
+    local label="$2" config="$3" default_val="${4:-}"
     local key type block min max step
     IFS='|' read -r key type block min max step <<< "$config"
 
@@ -324,8 +309,8 @@ register() {
         *) log_err "Invalid type for '${label}': ${type}"; exit 1 ;;
     esac
 
-    ITEM_MAP["${tab_idx}::${label}"]=$config
-    if [[ -n "$default_val" ]]; then DEFAULTS["${tab_idx}::${label}"]=$default_val; fi
+    ITEM_MAP["${tab_idx}::${label}"]="$config"
+    if [[ -n "$default_val" ]]; then DEFAULTS["${tab_idx}::${label}"]="$default_val"; fi
     local -n _reg_tab_ref="TAB_ITEMS_${tab_idx}"
     _reg_tab_ref+=("$label")
 
@@ -337,22 +322,22 @@ register() {
 }
 
 register_child() {
-    local parent_id=$1
-    local label=$2 config=$3 default_val=${4:-}
+    local parent_id="$1"
+    local label="$2" config="$3" default_val="${4:-}"
 
     # SAFETY: Ensure parent_id is a valid bash identifier
     if [[ ! "$parent_id" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
         log_err "Register Error: Menu ID '${parent_id}' contains invalid characters."
         exit 1
     fi
-    
+
     if ! declare -p "SUBMENU_ITEMS_${parent_id}" &>/dev/null; then
         declare -ga "SUBMENU_ITEMS_${parent_id}=()"
     fi
 
-    ITEM_MAP["${parent_id}::${label}"]=$config
-    if [[ -n "$default_val" ]]; then DEFAULTS["${parent_id}::${label}"]=$default_val; fi
-    
+    ITEM_MAP["${parent_id}::${label}"]="$config"
+    if [[ -n "$default_val" ]]; then DEFAULTS["${parent_id}::${label}"]="$default_val"; fi
+
     local -n _child_ref="SUBMENU_ITEMS_${parent_id}"
     _child_ref+=("$label")
 }
@@ -363,10 +348,10 @@ populate_config_cache() {
 
     while IFS='=' read -r key_part value_part || [[ -n "${key_part:-}" ]]; do
         if [[ -z "${key_part:-}" ]]; then continue; fi
-        CONFIG_CACHE["$key_part"]=$value_part
-        key_name=${key_part%%|*}
+        CONFIG_CACHE["$key_part"]="$value_part"
+        key_name="${key_part%%|*}"
         if [[ -z "${CONFIG_CACHE["${key_name}|"]:-}" ]]; then
-            CONFIG_CACHE["${key_name}|"]=$value_part
+            CONFIG_CACHE["${key_name}|"]="$value_part"
         fi
     done < <(LC_ALL=C awk '
         BEGIN { depth = 0 }
@@ -409,7 +394,7 @@ populate_config_cache() {
 }
 
 write_value_to_file() {
-    local key=$1 new_val=$2 block=${3:-}
+    local key="$1" new_val="$2" block="${3:-}"
     local current_val="${CONFIG_CACHE["$key|$block"]:-}"
     if [[ "$current_val" == "$new_val" ]]; then return 0; fi
 
@@ -423,12 +408,17 @@ write_value_to_file() {
         _TMPFILE=$(mktemp "${CONFIG_FILE}.tmp.XXXXXXXXXX")
     fi
 
-    if ! LC_ALL=C awk -v target_block="$block" -v target_key="$key" -v new_value="$new_val" '
+    # FIX (6.1): Use ENVIRON to prevent awk injection attacks
+    TARGET_BLOCK="$block" TARGET_KEY="$key" NEW_VALUE="$new_val" \
+    LC_ALL=C awk '
     BEGIN {
         depth = 0
         in_target = 0
         target_depth = 0
         replaced = 0
+        target_block = ENVIRON["TARGET_BLOCK"]
+        target_key = ENVIRON["TARGET_KEY"]
+        new_value = ENVIRON["NEW_VALUE"]
         do_block = (target_block != "")
     }
     {
@@ -473,13 +463,13 @@ write_value_to_file() {
             # Find the = sign position in original line to preserve pre-equals spacing
             eq = index(line, "=")
             before_eq = substr(line, 1, eq)
-            
+
             # Check for inline comment after value
             rest = substr(line, eq + 1)
             # Preserve spacing after =
             match(rest, /^[[:space:]]*/)
             space_after = substr(rest, RSTART, RLENGTH)
-            
+
             print before_eq space_after new_value
             replaced = 1
         } else {
@@ -497,7 +487,14 @@ write_value_to_file() {
         }
     }
     END { exit (replaced ? 0 : 1) }
-    ' "$CONFIG_FILE" > "$_TMPFILE"; then
+    ' "$CONFIG_FILE" > "$_TMPFILE" || {
+        rm -f "$_TMPFILE" 2>/dev/null || :
+        _TMPFILE=""
+        return 1
+    }
+
+    # FIX (2.4): Verify temp file integrity before truncating config
+    if [[ ! -s "$_TMPFILE" ]]; then
         rm -f "$_TMPFILE" 2>/dev/null || :
         _TMPFILE=""
         return 1
@@ -509,8 +506,8 @@ write_value_to_file() {
     rm -f "$_TMPFILE"
     _TMPFILE=""
 
-    CONFIG_CACHE["$key|$block"]=$new_val
-    if [[ -z "$block" ]]; then CONFIG_CACHE["$key|"]=$new_val; fi
+    CONFIG_CACHE["$key|$block"]="$new_val"
+    if [[ -z "$block" ]]; then CONFIG_CACHE["$key|"]="$new_val"; fi
     return 0
 }
 
@@ -539,15 +536,15 @@ load_active_values() {
             val="${CONFIG_CACHE["$key|"]:-}"
         fi
         if [[ -z "$val" ]]; then
-            VALUE_CACHE["${REPLY_CTX}::${item}"]=$UNSET_MARKER
+            VALUE_CACHE["${REPLY_CTX}::${item}"]="$UNSET_MARKER"
         else
-            VALUE_CACHE["${REPLY_CTX}::${item}"]=$val
+            VALUE_CACHE["${REPLY_CTX}::${item}"]="$val"
         fi
     done
 }
 
 modify_value() {
-    local label=$1
+    local label="$1"
     local -i direction=$2
     local REPLY_REF REPLY_CTX
     get_active_context
@@ -578,7 +575,7 @@ modify_value() {
 
             local -i int_step=${step:-1}
             int_val=$(( int_val + direction * int_step ))
-            
+
             # Simple, safe clamping
             if [[ -n "$min" ]]; then
                 local -i min_i
@@ -632,19 +629,19 @@ modify_value() {
     esac
 
     if write_value_to_file "$key" "$new_val" "$block"; then
-        VALUE_CACHE["${REPLY_CTX}::${label}"]=$new_val
+        VALUE_CACHE["${REPLY_CTX}::${label}"]="$new_val"
         post_write_action
     fi
 }
 
 set_absolute_value() {
-    local label=$1 new_val=$2
+    local label="$1" new_val="$2"
     local REPLY_REF REPLY_CTX
     get_active_context
     local key type block
     IFS='|' read -r key type block _ _ _ <<< "${ITEM_MAP["${REPLY_CTX}::${label}"]}"
     if write_value_to_file "$key" "$new_val" "$block"; then
-        VALUE_CACHE["${REPLY_CTX}::${label}"]=$new_val
+        VALUE_CACHE["${REPLY_CTX}::${label}"]="$new_val"
         return 0
     fi
     return 1
@@ -664,7 +661,10 @@ reset_defaults() {
             fi
         fi
     done
-    (( any_written )) && post_write_action
+    # SAFETY: Bare (( expr )) returns exit code 1 when expr is 0.
+    # Under set -e, this would terminate the script if no defaults were written.
+    # The || : guard ensures this is always safe.
+    (( any_written )) && post_write_action || :
     return 0
 }
 
@@ -672,6 +672,8 @@ reset_defaults() {
 
 # Computes scroll window and clamps SELECTED_ROW
 # Sets: SCROLL_OFFSET, SELECTED_ROW, _vis_start, _vis_end
+# Note: _vis_start/_vis_end are resolved via Bash dynamic scoping
+# to the caller's local variables of the same name.
 compute_scroll_window() {
     local -i count=$1
     if (( count == 0 )); then
@@ -701,7 +703,7 @@ compute_scroll_window() {
 # Renders the scroll indicators (above/below items)
 render_scroll_indicator() {
     local -n _rsi_buf=$1
-    local position=$2
+    local position="$2"
     local -i count=$3 boundary=$4
 
     if [[ "$position" == "above" ]]; then
@@ -729,7 +731,7 @@ render_scroll_indicator() {
 render_item_list() {
     local -n _ril_buf=$1
     local -n _ril_items=$2
-    local _ril_ctx=$3
+    local _ril_ctx="$3"
     local -i _ril_vs=$4 _ril_ve=$5
 
     local -i ri
@@ -753,7 +755,14 @@ render_item_list() {
                 ;;
         esac
 
-        printf -v padded_item "%-${ITEM_PADDING}s" "${item:0:${ITEM_PADDING}}"
+        # FIX (4.2): Add ellipsis for truncated items
+        local max_len=$(( ITEM_PADDING - 1 ))
+        if (( ${#item} > ITEM_PADDING )); then
+            printf -v padded_item "%-${max_len}s…" "${item:0:max_len}"
+        else
+            printf -v padded_item "%-${ITEM_PADDING}s" "$item"
+        fi
+
         if (( ri == SELECTED_ROW )); then
             _ril_buf+="${C_CYAN} ➤ ${C_INVERSE}${padded_item}${C_RESET} : ${display}${CLR_EOL}"$'\n'
         else
@@ -788,30 +797,80 @@ draw_main_view() {
     printf -v pad_buf '%*s' "$right_pad" ''
     buf+="${pad_buf}│${C_RESET}${CLR_EOL}"$'\n'
 
-    local tab_line="${C_MAGENTA}│ "
-    TAB_ZONES=()
-
-    for (( i = 0; i < TAB_COUNT; i++ )); do
-        local name="${TABS[i]}"
-        len=${#name}
-        zone_start=$current_col
-        if (( i == CURRENT_TAB )); then
-            tab_line+="${C_CYAN}${C_INVERSE} ${name} ${C_RESET}${C_MAGENTA}│ "
-        else
-            tab_line+="${C_GREY} ${name} ${C_MAGENTA}│ "
-        fi
-        TAB_ZONES+=("${zone_start}:$(( zone_start + len + 1 ))")
-        current_col=$(( current_col + len + 4 ))
-    done
-
-    pad_needed=$(( BOX_INNER_WIDTH - current_col + 2 ))
-    if (( pad_needed < 0 )); then pad_needed=0; fi
-    
-    if (( pad_needed > 0 )); then
-        printf -v pad_buf '%*s' "$pad_needed" ''
-        tab_line+="${pad_buf}"
+    # --- NEW: Scrollable Tab Rendering (Sliding Window) ---
+    if (( TAB_SCROLL_START > CURRENT_TAB )); then
+        TAB_SCROLL_START=$CURRENT_TAB
     fi
-    tab_line+="${C_MAGENTA}│${C_RESET}"
+
+    local tab_line
+    # Use config width minus borders (2) and margins (4 approx)
+    local -i max_tab_width=$(( BOX_INNER_WIDTH - 6 ))
+
+    LEFT_ARROW_ZONE=""
+    RIGHT_ARROW_ZONE=""
+
+    while true; do
+        tab_line="${C_MAGENTA}│ "
+        current_col=3
+        TAB_ZONES=()
+        local -i used_len=0
+
+        # Left Arrow
+        if (( TAB_SCROLL_START > 0 )); then
+            tab_line+="${C_YELLOW}«${C_RESET} "
+            LEFT_ARROW_ZONE="$current_col:$((current_col+1))"
+            used_len=$(( used_len + 2 ))
+            current_col=$(( current_col + 2 ))
+        else
+            tab_line+="  "
+            used_len=$(( used_len + 2 ))
+            current_col=$(( current_col + 2 ))
+        fi
+
+        for (( i = TAB_SCROLL_START; i < TAB_COUNT; i++ )); do
+            local name="${TABS[i]}"
+            local t_len=${#name}
+            # Visual chars: Space + Name + Space + Pipe + Space = NameLen + 4
+            local chunk_len=$(( t_len + 4 ))
+
+            local reserve=0
+            if (( i < TAB_COUNT - 1 )); then reserve=2; fi
+
+            if (( used_len + chunk_len + reserve > max_tab_width )); then
+                if (( i <= CURRENT_TAB )); then
+                    TAB_SCROLL_START=$(( TAB_SCROLL_START + 1 ))
+                    continue 2
+                fi
+                # Right Arrow
+                tab_line+="${C_YELLOW}» ${C_RESET}"
+                RIGHT_ARROW_ZONE="$current_col:$((current_col+1))"
+                used_len=$(( used_len + 2 ))
+                break
+            fi
+
+            zone_start=$current_col
+            if (( i == CURRENT_TAB )); then
+                tab_line+="${C_CYAN}${C_INVERSE} ${name} ${C_RESET}${C_MAGENTA}│ "
+            else
+                tab_line+="${C_GREY} ${name} ${C_MAGENTA}│ "
+            fi
+            
+            TAB_ZONES+=("${zone_start}:$(( zone_start + t_len + 1 ))")
+            used_len=$(( used_len + chunk_len ))
+            current_col=$(( current_col + chunk_len ))
+        done
+
+        # Alignment fix: -1 accounts for leading space in "│ "
+        local pad=$(( BOX_INNER_WIDTH - used_len - 1 ))
+        if (( pad > 0 )); then
+            printf -v pad_buf '%*s' "$pad" ''
+            tab_line+="$pad_buf"
+        fi
+        
+        tab_line+="${C_MAGENTA}│${C_RESET}"
+        break
+    done
+    # --------------------------------------------------------
 
     buf+="${tab_line}${CLR_EOL}"$'\n'
     buf+="${C_MAGENTA}└${H_LINE}┘${C_RESET}${CLR_EOL}"$'\n'
@@ -836,11 +895,11 @@ draw_detail_view() {
     local -i count pad_needed
     local -i left_pad right_pad vis_len
     local -i _vis_start _vis_end
-    
+
     # 1. Header
     buf+="${CURSOR_HOME}"
     buf+="${C_MAGENTA}┌${H_LINE}┐${C_RESET}${CLR_EOL}"$'\n'
-    
+
     local title=" DETAIL VIEW "
     local sub=" ${CURRENT_MENU_ID} "
     strip_ansi "$title"; local -i t_len=${#REPLY}
@@ -853,18 +912,18 @@ draw_detail_view() {
     buf+="${C_MAGENTA}│${pad_buf}${C_YELLOW}${title}${C_GREY}${sub}${C_MAGENTA}"
     printf -v pad_buf '%*s' "$right_pad" ''
     buf+="${pad_buf}│${C_RESET}${CLR_EOL}"$'\n'
-    
+
     # Breadcrumb
     local breadcrumb=" « Back to ${TABS[CURRENT_TAB]}"
     strip_ansi "$breadcrumb"; local -i b_len=${#REPLY}
     pad_needed=$(( BOX_INNER_WIDTH - b_len ))
     if (( pad_needed < 0 )); then pad_needed=0; fi
-    
+
     printf -v pad_buf '%*s' "$pad_needed" ''
-    
+
     buf+="${C_MAGENTA}│${C_CYAN}${breadcrumb}${C_RESET}${pad_buf}${C_MAGENTA}│${C_RESET}${CLR_EOL}"$'\n'
     buf+="${C_MAGENTA}└${H_LINE}┘${C_RESET}${CLR_EOL}"$'\n'
-    
+
     # Items
     local items_var="SUBMENU_ITEMS_${CURRENT_MENU_ID}"
     local -n _detail_items_ref="$items_var"
@@ -951,17 +1010,17 @@ set_tab() {
 check_drilldown() {
     local -n _dd_items_ref="TAB_ITEMS_${CURRENT_TAB}"
     if (( ${#_dd_items_ref[@]} == 0 )); then return 1; fi
-    
+
     local item="${_dd_items_ref[SELECTED_ROW]}"
     local config="${ITEM_MAP["${CURRENT_TAB}::${item}"]}"
     local key type
     IFS='|' read -r key type _ _ _ _ <<< "$config"
-    
+
     if [[ "$type" == "menu" ]]; then
         # Save state
         PARENT_ROW=$SELECTED_ROW
         PARENT_SCROLL=$SCROLL_OFFSET
-        
+
         # Switch Context
         CURRENT_MENU_ID="$key"
         CURRENT_VIEW=1
@@ -981,15 +1040,15 @@ go_back() {
 }
 
 handle_mouse() {
-    local input=$1
+    local input="$1"
     local -i button x y i start end
     local type zone
 
-    local body=${input#'[<'}
+    local body="${input#'[<'}"
     if [[ "$body" == "$input" ]]; then return 0; fi
-    local terminator=${body: -1}
+    local terminator="${body: -1}"
     if [[ "$terminator" != "M" && "$terminator" != "m" ]]; then return 0; fi
-    body=${body%[Mm]}
+    body="${body%[Mm]}"
     local field1 field2 field3
     IFS=';' read -r field1 field2 field3 <<< "$body"
     if [[ ! "$field1" =~ ^[0-9]+$ ]]; then return 0; fi
@@ -1003,11 +1062,27 @@ handle_mouse() {
 
     if (( y == TAB_ROW )); then
         if (( CURRENT_VIEW == 0 )); then
+            # --- ADDED: Arrow Handling for scrollable tabs ---
+            if [[ -n "$LEFT_ARROW_ZONE" ]]; then
+                start="${LEFT_ARROW_ZONE%%:*}"
+                end="${LEFT_ARROW_ZONE##*:}"
+                if (( x >= start && x <= end )); then switch_tab -1; return 0; fi
+            fi
+            if [[ -n "$RIGHT_ARROW_ZONE" ]]; then
+                start="${RIGHT_ARROW_ZONE%%:*}"
+                end="${RIGHT_ARROW_ZONE##*:}"
+                if (( x >= start && x <= end )); then switch_tab 1; return 0; fi
+            fi
+            # ---------------------------
+
             for (( i = 0; i < TAB_COUNT; i++ )); do
-                zone=${TAB_ZONES[i]}
-                start=${zone%%:*}
-                end=${zone##*:}
-                if (( x >= start && x <= end )); then set_tab "$i"; return 0; fi
+                # Check if zone exists (visible)
+                if [[ -z "${TAB_ZONES[i]:-}" ]]; then continue; fi
+                zone="${TAB_ZONES[i]}"
+                start="${zone%%:*}"
+                end="${zone##*:}"
+                # FIX (1.1): Account for scroll offset in click target
+                if (( x >= start && x <= end )); then set_tab "$(( i + TAB_SCROLL_START ))"; return 0; fi
             done
         else
             go_back
@@ -1018,7 +1093,7 @@ handle_mouse() {
     local -i effective_start=$(( ITEM_START_ROW + 1 ))
     if (( y >= effective_start && y < effective_start + MAX_DISPLAY_ROWS )); then
         local -i clicked_idx=$(( y - effective_start + SCROLL_OFFSET ))
-        
+
         local _target_var_name
         if (( CURRENT_VIEW == 0 )); then
              _target_var_name="TAB_ITEMS_${CURRENT_TAB}"
@@ -1027,7 +1102,7 @@ handle_mouse() {
         fi
 
         local -n _mouse_items_ref="$_target_var_name"
-        
+
         local -i count=${#_mouse_items_ref[@]}
         if (( clicked_idx >= 0 && clicked_idx < count )); then
             SELECTED_ROW=$clicked_idx
@@ -1153,8 +1228,9 @@ handle_input_router() {
 main() {
     if (( BASH_VERSINFO[0] < 5 )); then log_err "Bash 5.0+ required"; exit 1; fi
     if [[ ! -t 0 ]]; then log_err "TTY required"; exit 1; fi
-    # Config generation happens inside register_items now to ensure it exists before cache population
-    
+    if [[ ! -f "$CONFIG_FILE" ]]; then log_err "Config not found: $CONFIG_FILE"; exit 1; fi
+    if [[ ! -w "$CONFIG_FILE" ]]; then log_err "Config not writable: $CONFIG_FILE"; exit 1; fi
+
     local _dep
     # Removed sed from dependencies as it's no longer used
     for _dep in awk; do
@@ -1164,11 +1240,6 @@ main() {
     done
 
     register_items
-    
-    # Safety check after generation
-    if [[ ! -f "$CONFIG_FILE" ]]; then log_err "Config not found: $CONFIG_FILE"; exit 1; fi
-    if [[ ! -w "$CONFIG_FILE" ]]; then log_err "Config not writable: $CONFIG_FILE"; exit 1; fi
-
     populate_config_cache
 
     ORIGINAL_STTY=$(stty -g 2>/dev/null) || ORIGINAL_STTY=""
