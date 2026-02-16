@@ -13,8 +13,8 @@ shopt -s extglob
 # ▼ USER CONFIGURATION (EDIT THIS SECTION) ▼
 # =============================================================================
 
-declare -r APP_TITLE="Optional Package Installer"
-declare -r APP_VERSION="v2.7 (Fixed)"
+declare -r APP_TITLE="Dusky Optional Packages"
+declare -r APP_VERSION="v2.7 (Extended)"
 
 # Format: Category | Package Name | Description
 readonly RAW_PKG_DATA="
