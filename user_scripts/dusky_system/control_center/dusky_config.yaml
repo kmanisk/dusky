@@ -1799,23 +1799,13 @@ pages:
     items:
     - type: button
       properties:
-        title: Kokoro TTS (GPU)
-        description: High performance synthesis
+        title: Dusky TTS (Kokoro)
+        description: Supports Nvidia, AMD, CPU
         icon: audio-speakers-symbolic
         button_text: "Speak"
       on_press:
         type: exec
         command: kitty --class kokoro_installer.sh --hold sh -c "$HOME/user_scripts/tts_stt/dusky_kokoro/kokoro_installer.sh"
-        terminal: false
-    - type: button
-      properties:
-        title: Kokoro TTS (CPU)
-        description: Standard synthesis
-        icon: audio-speakers-symbolic
-        button_text: "Speak"
-      on_press:
-        type: exec
-        command: kitty --class 340_kokoro_cpu.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/340_kokoro_cpu.sh"
         terminal: false
   - type: section
     properties:
@@ -1845,7 +1835,7 @@ pages:
         terminal: false
 
 - id: setup_features
-  title: Setup Features
+  title: Setup
   icon: system-software-install-symbolic
   layout:
   - type: section
