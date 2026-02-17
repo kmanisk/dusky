@@ -414,7 +414,7 @@ pages:
         button_text: "Purge"
       on_press:
         type: exec
-        command: kitty --class cache_purge.sh --hold sh -c "$HOME/user_scripts/desktop_apps/cache_purge.sh"
+        command: kitty --class 365_cache_purge.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/365_cache_purge.sh"
         terminal: false
     - type: button
       properties:
@@ -434,11 +434,11 @@ pages:
         options:
           - Yazi
           - Thunar
-        value_command: "grep -q 'True' ~/.config/dusky/settings/file_manager_state 2>/dev/null && echo 'Yazi' || echo 'Thunar'"
+        value_command: "grep -q 'true' ~/.config/dusky/settings/filemanager_switch 2>/dev/null && echo 'Yazi' || echo 'Thunar'"
         interval: 5
       on_change:
         type: exec
-        command: "kitty --class 235_file_manager_switch.sh --hold sh -c \"$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh --$(echo '{value}' | tr '[:upper:]' '[:lower:]')\""
+        command: "kitty --class 235_file_manager_switch.sh --hold sh -c \"$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh --$(echo '{value}' | awk '{print tolower($0)}')\""
   - type: section
     properties:
       title: File Transfer (FTP)
@@ -582,7 +582,22 @@ pages:
         type: exec
         command: kitty --class airmon_ng.sh --hold sh -c ~/user_scripts/networking/airmon_ng.sh
         terminal: false
-
+  - type: section
+    properties:
+      title: Hosts File
+      icon: ''
+      description: ''
+    items:
+    - type: button
+      properties:
+        title: Brain Rot Block
+        description: Blocks social media sites
+        icon: security-high-symbolic
+        button_text: "Block"
+      on_press:
+        type: exec
+        command: kitty --class 325_hosts_files_block.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/325_hosts_files_block.sh"
+        terminal: false
 - id: hardware
   title: Hardware
   icon: input-keyboard-symbolic
@@ -869,7 +884,7 @@ pages:
     - type: grid_card
       properties:
         title: Presets
-        icon: style-symbolic
+        icon: view-grid-symbolic
       on_press:
         type: exec
         command: kitty --class dusky_matugen_presets.sh -e ~/user_scripts/theme_matugen/dusky_matugen_presets.sh
@@ -1072,7 +1087,7 @@ pages:
               properties:
                 title: Optimize Swappiness
                 description: Uses more RAM
-                icon: preferences-system-performance-symbolic
+                icon: speedometer-symbolic
                 style: destructive
                 button_text: "Optimize"
               on_press:
@@ -1111,36 +1126,42 @@ pages:
       icon: ''
       description: ''
     items:
-    - type: button
-      properties:
-        title: Dusky Hyprlock TUI
-        description: Swap Lock Screen Layout
-        icon: system-lock-screen-symbolic
-        button_text: "Open"
-      on_press:
-        type: exec
-        command: kitty --class dusky_hyprlock_switcher.sh --hold sh -c $HOME/user_scripts/hyprlock/dusky_hyprlock_switcher.sh
-        terminal: false
-    - type: button
-      properties:
-        title: Dusky Hypridle TUI
-        description: Customize Hypridle timings (TUI)
-        icon: preferences-system-time-symbolic
-        button_text: "Open"
-      on_press:
-        type: exec
-        command: kitty --class dusky_hypridle.sh --hold sh -c "$HOME/user_scripts/hypridle/dusky_hypridle.sh"
-        terminal: false
-    - type: button
-      properties:
-        title: Toggle Idle Daemon
-        description: Enable/Disable Hypridle (Current session)
-        icon: media-playlist-repeat-symbolic
-        button_text: "Toggle"
-      on_press:
-        type: exec
-        command: $HOME/user_scripts/waybar/toggle_hypridle.sh
-        terminal: false
+      - type: expander
+        properties:
+          title: Lock Screen & Idle
+          description: Manage Hyprlock and Hypridle
+          icon: system-lock-screen-symbolic
+        items:
+          - type: button
+            properties:
+              title: Dusky Hyprlock TUI
+              description: Swap Lock Screen Layout
+              icon: system-lock-screen-symbolic
+              button_text: "Open"
+            on_press:
+              type: exec
+              command: kitty --class dusky_hyprlock_switcher.sh --hold sh -c $HOME/user_scripts/hyprlock/dusky_hyprlock_switcher.sh
+              terminal: false
+          - type: button
+            properties:
+              title: Dusky Hypridle TUI
+              description: Customize Hypridle timings (TUI)
+              icon: preferences-system-time-symbolic
+              button_text: "Open"
+            on_press:
+              type: exec
+              command: kitty --class dusky_hypridle.sh --hold sh -c "$HOME/user_scripts/hypridle/dusky_hypridle.sh"
+              terminal: false
+          - type: button
+            properties:
+              title: Toggle Idle Daemon
+              description: Enable/Disable Hypridle (Current session)
+              icon: media-playlist-repeat-symbolic
+              button_text: "Toggle"
+            on_press:
+              type: exec
+              command: $HOME/user_scripts/waybar/toggle_hypridle.sh
+              terminal: false
 
 - id: services
   title: Services
@@ -1729,7 +1750,7 @@ pages:
   layout:
   - type: section
     properties:
-      title: Artificial Intelligence
+      title: Large Language Models (LLM)
       icon: ''
       description: ''
     items:
@@ -1743,6 +1764,12 @@ pages:
         type: exec
         command: kitty --class ollama_terminal.sh --title "Ollama" --hold sh -c "$HOME/user_scripts/llm/ollama_terminal.sh"
         terminal: false
+  - type: section
+    properties:
+      title: Image Tools
+      icon: ''
+      description: ''
+    items:
     - type: button
       properties:
         title: Google Lens Search
@@ -1755,26 +1782,6 @@ pages:
         terminal: false
     - type: button
       properties:
-        title: TTS - Kokoro (GPU)
-        description: Text-to-Speech synthesis
-        icon: audio-speakers-symbolic
-        button_text: "Speak"
-      on_press:
-        type: exec
-        command: $HOME/user_scripts/tts_stt/kokoro_gpu/speak.sh
-        terminal: false
-    - type: button
-      properties:
-        title: STT - Faster Whisper
-        description: Speech-to-Text dictation
-        icon: microphone-sensitivity-high-symbolic
-        button_text: "Record"
-      on_press:
-        type: exec
-        command: $HOME/user_scripts/tts_stt/faster_whisper/faster_whisper_sst.sh
-        terminal: false
-    - type: button
-      properties:
         title: OCR Selection
         description: Copy text from screen
         icon: edit-copy-symbolic
@@ -1783,6 +1790,58 @@ pages:
         type: exec
         command: sh -c 'region=$(slurp); grim -g "$region" - | tesseract stdin stdout
           -l eng | wl-copy'
+        terminal: false
+  - type: section
+    properties:
+      title: Text to Speech (TTS)
+      icon: ''
+      description: ''
+    items:
+    - type: button
+      properties:
+        title: Kokoro TTS (GPU)
+        description: High performance synthesis
+        icon: audio-speakers-symbolic
+        button_text: "Speak"
+      on_press:
+        type: exec
+        command: kitty --class kokoro_installer.sh --hold sh -c "$HOME/user_scripts/tts_stt/dusky_kokoro/kokoro_installer.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Kokoro TTS (CPU)
+        description: Standard synthesis
+        icon: audio-speakers-symbolic
+        button_text: "Speak"
+      on_press:
+        type: exec
+        command: kitty --class 340_kokoro_cpu.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/340_kokoro_cpu.sh"
+        terminal: false
+  - type: section
+    properties:
+      title: Speech to Text (SST)
+      icon: ''
+      description: ''
+    items:
+    - type: button
+      properties:
+        title: Faster Whisper (CPU)
+        description: Standard dictation
+        icon: microphone-sensitivity-high-symbolic
+        button_text: "Record"
+      on_press:
+        type: exec
+        command: kitty --class 345_faster_whisper_cpu.sh --hold sh -c "$HOME/user_scripts/tts_stt/dusky_kokoro/345_faster_whisper_cpu.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Parakeet (GPU)
+        description: High performance dictation
+        icon: microphone-sensitivity-high-symbolic
+        button_text: "Record"
+      on_press:
+        type: exec
+        command: kitty --class 425_parakeet_gpu_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/425_parakeet_gpu_setup.sh"
         terminal: false
 
 - id: setup_features
@@ -1814,6 +1873,17 @@ pages:
       on_press:
         type: exec
         command: kitty --class 085_warp.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/085_warp.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Preload Config
+        description: "Cache binaries (WARNING: High RAM Usage!)"
+        icon: system-run-symbolic
+        style: destructive
+        button_text: "Setup"
+      on_press:
+        type: exec
+        command: kitty --class 335_preload_config.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/335_preload_config.sh"
         terminal: false
     - type: button
       properties:
@@ -1852,6 +1922,57 @@ pages:
         type: exec
         command: kitty --class 150_wallpapers_download.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/150_wallpapers_download.sh"
         terminal: false
+    - type: navigation
+      properties:
+        title: Dusky Plugins
+        description: Manage Dusky extensions
+        icon: application-x-addon-symbolic
+      layout:
+        - type: section
+          properties:
+            title: Plugins
+          items:
+            - type: button
+              properties:
+                title: HyprExpo
+                description: Workspace overview plugin
+                icon: view-grid-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 355_hyprexpo_plugin.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/355_hyprexpo_plugin.sh"
+                terminal: false
+    - type: navigation
+      properties:
+        title: Wayclick Setup
+        description: Mechanical keyboard sounds
+        icon: input-keyboard-symbolic
+      layout:
+        - type: section
+          properties:
+            title: Wayclick Configuration
+          items:
+            - type: button
+              properties:
+                title: "Step 1: Reset"
+                description: Clean existing configuration
+                icon: edit-delete-symbolic
+                style: destructive
+                button_text: "Reset"
+              on_press:
+                type: exec
+                command: kitty --class 445_wayclick_reset.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/445_wayclick_reset.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: "Step 2: Install"
+                description: Setup Dusky Wayclick
+                icon: system-software-install-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class wayclick.sh --hold sh -c "$HOME/user_scripts/wayclick/wayclick.sh"
+                terminal: false
 
   - type: section
     properties:
@@ -1867,31 +1988,42 @@ pages:
         type: exec
         command: kitty --class 470_vesktop_matugen.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh"
         terminal: false
-    - type: expander
+
+  - type: section
+    properties:
+      title: Spotify
+      icon: ''
+      description: ''
+    items:
+    - type: navigation
       properties:
         title: Spotify
         description: Install and Theme
         icon: media-playback-start-symbolic
-      items:
-        - type: button
+      layout:
+        - type: section
           properties:
-            title: Install Spotify
-            icon: system-software-install-symbolic
-            button_text: "Install"
-          on_press:
-            type: exec
-            command: kitty --class 260_spotify.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh"
-            terminal: false
-        - type: button
-          properties:
-            title: Theme Spicetify
-            description: Apply Matugen theme
-            icon: palette-symbolic
-            button_text: "Theme"
-          on_press:
-            type: exec
-            command: kitty --class 405_spicetify_matugen_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh"
-            terminal: false
+            title: Spotify Setup
+          items:
+            - type: button
+              properties:
+                title: Install Spotify
+                icon: system-software-install-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 260_spotify.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: Theme Spicetify
+                description: Apply Matugen theme
+                icon: palette-symbolic
+                button_text: "Theme"
+              on_press:
+                type: exec
+                command: kitty --class 405_spicetify_matugen_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh"
+                terminal: false
 
   - type: section
     properties:
@@ -1938,6 +2070,140 @@ pages:
         type: exec
         command: kitty --class 385_waydroid_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/385_waydroid_setup.sh"
         terminal: false
+
+- id: troubleshoot
+  title: Troubleshoot
+  icon: tools-check-spelling-symbolic
+  layout:
+  - type: section
+    properties:
+      title: Fixes
+      icon: ''
+      description: Common issues and repairs
+    items:
+    - type: button
+      properties:
+        title: Fix Desktop Entries
+        description: Resolve application launcher issues
+        icon: application-x-executable-symbolic
+        button_text: "Reset"
+      on_press:
+        type: exec
+        command: kitty --class 020_desktop_apps_username_setter.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/020_desktop_apps_username_setter.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Fix Mirror Speeds
+        description: Update Pacman mirrors (Reflector)
+        icon: network-server-symbolic
+        button_text: "Refresh"
+      on_press:
+        type: exec
+        command: kitty --class 055_pacman_reflector.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/055_pacman_reflector.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Reset User Configs
+        description: Force reset Hyprland configs (Destructive!)
+        icon: edit-delete-symbolic
+        style: destructive
+        button_text: "Reset"
+      on_press:
+        type: exec
+        command: kitty --class 005_hypr_custom_config_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/005_hypr_custom_config_setup.sh --force"
+        terminal: false
+    - type: button
+      properties:
+        title: Battery Notify Service
+        description: Enable battery alerts
+        icon: battery-level-50-symbolic
+        button_text: "Fix"
+      on_press:
+        type: exec
+        command: kitty --class 135_battery_notify_service.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/135_battery_notify_service.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Fix Waypaper
+        description: Reset wallpaper configuration
+        icon: image-x-generic-symbolic
+        button_text: "Reset"
+      on_press:
+        type: exec
+        command: kitty --class 170_waypaper_config_reset.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/170_waypaper_config_reset.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Reset Animations
+        description: Restore default animation settings
+        icon: media-playlist-shuffle-symbolic
+        button_text: "Reset"
+      on_press:
+        type: exec
+        command: kitty --class 175_animation_default.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/175_animation_default.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: SwayNC DGPU Fix
+        description: Fix notification rendering on NVIDIA
+        icon: video-display-symbolic
+        style: destructive
+        button_text: "Caution"
+      on_press:
+        type: exec
+        command: kitty --class 240_swaync_dgpu_fix.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/240_swaync_dgpu_fix.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Fix Firefox Theme
+        description: Apply Matugen/Pywalfox theme
+        icon: web-browser-symbolic
+        button_text: "Fix"
+      on_press:
+        type: exec
+        command: kitty --class 400_firefox_matugen_pywalfox.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/400_firefox_matugen_pywalfox.sh"
+        terminal: false
+    - type: button
+      properties:
+        title: Fix Cursor Theme
+        description: Reset to Bibata Modern Classic
+        icon: input-mouse-symbolic
+        button_text: "Fix"
+      on_press:
+        type: exec
+        command: kitty --class 375_cursor_theme_bibata_classic_modern.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/375_cursor_theme_bibata_classic_modern.sh"
+        terminal: false
+    - type: navigation
+      properties:
+        title: Neovim Troubleshooting
+        description: Clean and sync plugins
+        icon: text-editor-symbolic
+      layout:
+        - type: section
+          properties:
+            title: Neovim Maintenance
+          items:
+            - type: button
+              properties:
+                title: "Step 1: Clean"
+                description: Remove Neovim cache/data
+                icon: user-trash-symbolic
+                style: destructive
+                button_text: "Clean"
+              on_press:
+                type: exec
+                command: kitty --class 270_neovim_clean.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/270_neovim_clean.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: "Step 2: Sync"
+                description: Lazy Sync plugins
+                icon: view-refresh-symbolic
+                button_text: "Sync"
+              on_press:
+                type: exec
+                command: kitty --class 275_neovim_lazy_sync.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/275_neovim_lazy_sync.sh"
+                terminal: false
 
 - id: about_dusky
   title: About System
