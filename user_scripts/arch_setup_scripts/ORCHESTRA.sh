@@ -23,7 +23,7 @@ SCRIPT_SEARCH_DIRS=(
 )
 
 # Delay (in seconds) after each successful script. Set to 0 to disable.
-POST_SCRIPT_DELAY=1
+POST_SCRIPT_DELAY=0
 
 INSTALL_SEQUENCE=(
     "U | 005_hypr_custom_config_setup.sh"

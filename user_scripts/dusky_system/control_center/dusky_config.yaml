@@ -426,16 +426,19 @@ pages:
         type: exec
         command: kitty --class ntfs_fix.sh --hold sh -c $HOME/user_scripts/drives/ntfs_fix.sh
         terminal: false
-    - type: button
+    - type: selection
       properties:
         title: File Manager Switch
         description: 'Choose Default: Thunar (GUI) vs Yazi (TUI)'
         icon: system-file-manager-symbolic
-        button_text: "Switch"
-      on_press:
+        options:
+          - Yazi
+          - Thunar
+        value_command: "grep -q 'True' ~/.config/dusky/settings/file_manager_state 2>/dev/null && echo 'Yazi' || echo 'Thunar'"
+        interval: 5
+      on_change:
         type: exec
-        command: kitty --class file_manager_switch.sh --hold sh -c $HOME/user_scripts/desktop_apps/file_manager_switch.sh
-        terminal: false
+        command: "kitty --class 235_file_manager_switch.sh --hold sh -c \"$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh --$(echo '{value}' | tr '[:upper:]' '[:lower:]')\""
   - type: section
     properties:
       title: File Transfer (FTP)
@@ -450,7 +453,7 @@ pages:
         button_text: "Setup"
       on_press:
         type: exec
-        command: kitty --class ftp_setup_arch.sh --hold sh -c $HOME/user_scripts/ftp/ftp_setup_arch.sh
+        command: kitty --class 250_ftp_arch.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/250_ftp_arch.sh"
         terminal: false
     - type: button
       properties:
@@ -1014,15 +1017,19 @@ pages:
       icon: ''
       description: ''
     items:
-    - type: button
+    - type: selection
       properties:
         title: Clipboard Persistence
-        description: Configure clipboard history across reboots
+        description: Configure clipboard history storage
         icon: edit-paste-symbolic
-        button_text: "Setup"
-      on_press:
+        options:
+        - RAM
+        - Disk
+        value_command: "grep -q 'True' ~/.config/dusky/settings/clipboard_persistance 2>/dev/null && echo 'Disk' || echo 'RAM'"
+        interval: 5
+      on_change:
         type: exec
-        command: kitty --class mouse_button_reverse.sh --hold sh -c $HOME/user_scripts/desktop_apps/clipboard_persistance.sh
+        command: "kitty --class 390_clipboard_persistance.sh --hold sh -c \"$HOME/user_scripts/arch_setup_scripts/scripts/390_clipboard_persistance.sh --$(echo '{value}' | tr '[:upper:]' '[:lower:]')\""
         terminal: false
     - type: selection
       properties:
@@ -1035,7 +1042,43 @@ pages:
         interval: 5
       on_change:
         type: exec
-        command: "$HOME/user_scripts/desktop_apps/switch_clipboard.sh --$(echo '{value}' | tr '[:upper:]' '[:lower:]')"
+        command: "$HOME/user_scripts/arch_setup_scripts/scripts/switch_clipboard.sh --$(echo '{value}' | tr '[:upper:]' '[:lower:]')"
+  - type: section
+    properties:
+      title: Memory & Optimization
+      icon: ''
+      description: ''
+    items:
+    - type: navigation
+      properties:
+        title: ZRam Configuration
+        description: Manage compressed memory swap
+        icon: am-memory-symbolic
+      layout:
+        - type: section
+          properties:
+            title: ZRam Setup
+          items:
+            - type: button
+              properties:
+                title: ZRam Configurator
+                icon: preferences-system-symbolic
+                button_text: "Setup"
+              on_press:
+                type: exec
+                command: kitty --class 205_zram_configuration.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/205_zram_configuration.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: Optimize Swappiness
+                description: Uses more RAM
+                icon: preferences-system-performance-symbolic
+                style: destructive
+                button_text: "Optimize"
+              on_press:
+                type: exec
+                command: kitty --class 210_zram_optimize_swappiness.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/210_zram_optimize_swappiness.sh"
+                terminal: false
   - type: section
     properties:
       title: Status Bar & Notifications
@@ -1809,6 +1852,46 @@ pages:
         type: exec
         command: kitty --class 150_wallpapers_download.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/150_wallpapers_download.sh"
         terminal: false
+
+  - type: section
+    properties:
+      title: Applications
+    items:
+    - type: button
+      properties:
+        title: Vesktop Setup
+        description: Superior Discord client with theming
+        icon: applications-internet-symbolic
+        button_text: "Setup"
+      on_press:
+        type: exec
+        command: kitty --class 470_vesktop_matugen.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/470_vesktop_matugen.sh"
+        terminal: false
+    - type: expander
+      properties:
+        title: Spotify
+        description: Install and Theme
+        icon: media-playback-start-symbolic
+      items:
+        - type: button
+          properties:
+            title: Install Spotify
+            icon: system-software-install-symbolic
+            button_text: "Install"
+          on_press:
+            type: exec
+            command: kitty --class 260_spotify.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/260_spotify.sh"
+            terminal: false
+        - type: button
+          properties:
+            title: Theme Spicetify
+            description: Apply Matugen theme
+            icon: palette-symbolic
+            button_text: "Theme"
+          on_press:
+            type: exec
+            command: kitty --class 405_spicetify_matugen_setup.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/405_spicetify_matugen_setup.sh"
+            terminal: false
 
   - type: section
     properties:
