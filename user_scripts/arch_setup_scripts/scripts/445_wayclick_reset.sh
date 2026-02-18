@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Resets Wayclick setup
 # ==============================================================================
 # WAYCLICK RESET PROTOCOL - FACTORY RESET & REBUILD (GOLDEN COPY)
 # ==============================================================================

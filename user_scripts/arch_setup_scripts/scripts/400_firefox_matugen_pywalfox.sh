@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# firefox setup for matugen themeing
 # -----------------------------------------------------------------------------
 # Script: 044_firefox_pywal.sh
 # Description: Setup Firefox, Pywalfox, and Matugen (Orchestra compatible)

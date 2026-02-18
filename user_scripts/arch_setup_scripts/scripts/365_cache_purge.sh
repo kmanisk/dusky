@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Aggressively cleans Pacman, Paru, and Yay caches to reclaim space.
 # ==============================================================================
 #  ARCH LINUX CACHE PURGE & OPTIMIZER
 # ==============================================================================

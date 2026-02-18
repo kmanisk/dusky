@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Clipboard Persistnace Ram/disk
 # -----------------------------------------------------------------------------
 # UWSM Clipboard Persistence Manager - v1.2.0 (Hardened + Automation)
 # -----------------------------------------------------------------------------

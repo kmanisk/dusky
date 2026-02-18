@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# sddm setup
 
 # ==============================================================================
 #  Dusky SDDM Theme Setup Script

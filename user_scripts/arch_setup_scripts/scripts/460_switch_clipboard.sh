@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# switch between rofi and tui clipbard
 # ==============================================================================
 # Script: switch_clipboard.sh
 # Purpose: Toggle between Terminal and Rofi clipboard managers for Hyprland.

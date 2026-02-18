@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# spicetify setup
 # -----------------------------------------------------------------------------
 # Script: auto-spicetify.sh
 # Description: Automated Spicetify setup/recovery for Dusky Dotfiles.
