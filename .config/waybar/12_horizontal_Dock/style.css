@@ -41,12 +41,12 @@ tooltip label {
 }
 
 #workspaces {
-    padding: 6px 6px;
-    margin: 0 0 0 12px;
+    padding: 9px 3px;
+    margin: 0 0 0 6px;
 }
 
 #workspaces button {
-    padding: 0px 6px;
+    padding: 0px 3px;
     margin: 0px 3px;
     border-radius: 45px;
     background-color: @surface;
@@ -58,14 +58,14 @@ tooltip label {
     background: linear-gradient(135deg, @primary 0%, @secondary 100%);
     color: @on_primary;
     min-height: 20px;
-    min-width: 45px;
+    min-width: 30px;
     transition: all 0.3s ease-in-out;
 }
 
 #workspaces button:hover {
     background: linear-gradient(135deg, @primary 50%, @secondary 100%);
     color: @on_primary;
-    min-width: 40px;
+    min-width: 24px;
     background-size: 400% 400%;
 }
 
@@ -93,6 +93,8 @@ tooltip label {
 
 #mpris {
     color: @on_surface;
+    margin-right: 4px;
+    font-size: 14px;
 }
 
 #pulseaudio {

@@ -4,13 +4,20 @@
     "margin-top": 8,
     "modules-center": [
         "clock",
-        "mpris",
+//        "mpris",
+        "custom/cava",
         "hyprland/workspaces",
         "group/hide-tray",
         "pulseaudio",
         "battery",
         "custom/notification"
     ],
+
+    "custom/cava": {
+      "format": "{}",
+      "exec": "$HOME/user_scripts/waybar/cava.sh --6"
+    },
+
     "mpris": {
         "format": "{player_icon} {title}",
         "format-paused": "{status_icon} <i>{position} {artist}</i>",
@@ -48,7 +55,7 @@
             "urgent": ""
         },
         "persistent-workspaces": {
-            "*": 5
+            "*": 4
         },
         "on-click": "activate",
         "on-scroll-down": "hyprctl dispatch workspace e+1",
@@ -71,7 +78,8 @@
                 ""
             ]
         },
-        "scroll-step": 1,
+        "on-scroll-up": "swayosd-client --output-volume raise",
+        "on-scroll-down": "swayosd-client --output-volume lower",
         "on-click": "pavucontrol",
         "ignored-sinks": [
             "Easy Effects Sink"
