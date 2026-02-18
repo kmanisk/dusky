@@ -75,7 +75,7 @@ INSTALL_SEQUENCE=(
     "U | 240_swaync_dgpu_fix.sh --disable"
 #    "S | 245_asusd_service_fix.sh"
 #    "S | 250_ftp_arch.sh"
-    "U | 255_tldr_update.sh"
+#    "U | 255_tldr_update.sh"
 #    "U | 260_spotify.sh"
 #    "U | 265_mouse_button_reverse.sh --right"
     "U | 270_neovim_clean.sh"
