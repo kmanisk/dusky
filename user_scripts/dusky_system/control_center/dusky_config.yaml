@@ -793,11 +793,11 @@ pages:
       on_toggle:
         enabled:
           type: exec
-          command: $HOME/user_scripts/wayclick/wayclick.sh
+          command: $HOME/user_scripts/wayclick/dusky_wayclick.sh
           terminal: false
         disabled:
           type: exec
-          command: $HOME/user_scripts/wayclick/wayclick.sh
+          command: $HOME/user_scripts/wayclick/dusky_wayclick.sh
           terminal: false
 
   - type: section
@@ -1951,7 +1951,7 @@ pages:
                 button_text: "Reset"
               on_press:
                 type: exec
-                command: kitty --class 445_wayclick_reset.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/445_wayclick_reset.sh"
+                command: kitty --class dusky_wayclick.sh --hold sh -c "$HOME/user_scripts/wayclick/dusky_wayclick.sh --reset"
                 terminal: false
             - type: button
               properties:
@@ -1961,7 +1961,7 @@ pages:
                 button_text: "Install"
               on_press:
                 type: exec
-                command: kitty --class wayclick.sh --hold sh -c "$HOME/user_scripts/wayclick/wayclick.sh"
+                command: kitty --class dusky_wayclick.sh --hold sh -c "$HOME/user_scripts/wayclick/dusky_wayclick.sh --setup"
                 terminal: false
 
   - type: section
