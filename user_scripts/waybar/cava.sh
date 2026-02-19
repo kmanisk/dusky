@@ -22,8 +22,8 @@ validate_bars() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) usage 0 ;;
-        --vert) vert=1 ;;
-        --clean) clean=1 ;;
+        --vert)    vert=1 ;;
+        --clean)   clean=1 ;;
         --bars)
             [[ -n ${2+x} ]] || { printf 'Missing value for --bars\n' >&2; exit 1; }
             bars="$2"; shift
@@ -52,43 +52,81 @@ command -v cava >/dev/null 2>&1 || {
 
 trap 'kill 0 2>/dev/null' EXIT
 
-# ascii_max_range = 7 corresponds to the 8 block characters below (0-7 → ▁▂▃▄▅▆▇█)
-cava -p <(cat << EOF
-[general]
-bars = $bars
-framerate = 60
-
-[output]
-method = raw
-raw_target = /dev/stdout
-data_format = ascii
-ascii_max_range = 7
-EOF
-) | if (( vert )); then
-    awk -v clean="$clean" '
+# printf is a bash builtin — no fork, unlike the original cat-in-process-substitution
+cava -p <(printf '%s\n' \
+    '[general]' \
+    "bars = $bars" \
+    'framerate = 60' \
+    '' \
+    '[output]' \
+    'method = raw' \
+    'raw_target = /dev/stdout' \
+    'data_format = ascii' \
+    'ascii_max_range = 7'
+) | awk -v vert="$vert" -v clean="$clean" '
 BEGIN {
-    m["0"]="▁"; m["1"]="▂"; m["2"]="▃"; m["3"]="▄"
-    m["4"]="▅"; m["5"]="▆"; m["6"]="▇"; m["7"]="█"
+    c[0] = "▁"; c[1] = "▂"; c[2] = "▃"; c[3] = "▄"
+    c[4] = "▅"; c[5] = "▆"; c[6] = "▇"; c[7] = "█"
+    idle     = 0
+    blanked  = 0
+    # 60 consecutive all-zero *displayed* frames ≈ 1 second at 60 fps
+    threshold = 60
 }
 {
-    out = ""
-    n = split($0, a, ";")
+    n       = split($0, raw, ";")
+    nbars   = 0
     all_zero = 1
+
     for (i = 1; i <= n; i++) {
-        if (a[i] in m) {
-            if (a[i] != "0") all_zero = 0
-            if (out != "") out = out "\\n"
-            out = out m[a[i]]
-        }
+        if (raw[i] == "") continue
+        nbars++
+
+        actual = raw[i] + 0
+        if (actual < 0) actual = 0
+        if (actual > 7) actual = 7
+
+        # Gradual decay: the displayed level may drop at most 2 per frame.
+        # On the first frame prev[] is implicitly 0, so decayed = -2
+        # and displayed = max(actual, -2) = actual.  Correct cold-start.
+        decayed   = prev[nbars] - 2
+        displayed = (actual > decayed) ? actual : decayed
+        if (displayed < 0) displayed = 0
+
+        prev[nbars] = displayed
+        if (displayed > 0) all_zero = 0
     }
-    if (clean && all_zero) out = ""
-    printf "{\"text\":\"%s\"}\n", out
+
+    # ── debounce ────────────────────────────────────────────────
+    if (clean && all_zero) idle++
+    else                   idle = 0
+
+    # Once idle long enough, emit one blank line to hide the module,
+    # then suppress further output until audio returns.
+    if (clean && idle > threshold) {
+        if (!blanked) {
+            if (vert) printf "{\"text\":\"\"}\n"
+            else      printf "\n"
+            fflush()
+            blanked = 1
+        }
+        next
+    }
+    blanked = 0
+
+    # ── build visible output ────────────────────────────────────
+    if (vert) {
+        out = ""
+        for (i = 1; i <= nbars; i++) {
+            if (i > 1) out = out "\\n"
+            out = out c[prev[i]]
+        }
+        printf "{\"text\":\"%s\"}\n", out
+    } else {
+        out = ""
+        for (i = 1; i <= nbars; i++)
+            out = out c[prev[i]]
+        printf "%s\n", out
+    }
+
     fflush()
 }'
-else
-    if (( clean )); then
-        sed -u 's/;//g;y/01234567/▁▂▃▄▅▆▇█/' | sed -u '/^▁*$/s/.*//'
-    else
-        sed -u 's/;//g;y/01234567/▁▂▃▄▅▆▇█/'
-    fi
-fi
