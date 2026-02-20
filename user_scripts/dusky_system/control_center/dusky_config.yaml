@@ -236,7 +236,7 @@ pages:
           terminal: false
         disabled:
           type: exec
-          command: kitty --class 285_tty_autologin.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/285_tty_autologin.sh --revert"
+          command: kitty --class 285_tty_autologin.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/285_tty_autologin.sh --revert --auto"
           terminal: false
 
   - type: section
