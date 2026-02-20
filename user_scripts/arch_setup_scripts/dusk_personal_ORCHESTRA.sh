@@ -166,7 +166,8 @@ setup_logging() {
     fi
 
     touch "$LOG_FILE"
-    exec > >(tee >(sed 's/\x1B\[[0-9;]*[a-zA-Z]//g; s/\x1B(B//g' >> "$LOG_FILE")) 2>&1
+    # PATCH: Close FD 9 for the tee process to avoid lock file inheritance
+    exec > >(exec 9>&-; tee >(sed 's/\x1B\[[0-9;]*[a-zA-Z]//g; s/\x1B(B//g' >> "$LOG_FILE")) 2>&1
 
     LOGGING_INITIALIZED=1
     echo "--- Installation Started: $(date '+%Y-%m-%d %H:%M:%S') ---"
@@ -197,7 +198,8 @@ init_sudo() {
         exit 1
     fi
 
-    ( set +e; while true; do sudo -n true; sleep "$SUDO_REFRESH_INTERVAL"; kill -0 "$$" || exit; done 2>/dev/null ) &
+    # PATCH: Close FD 9 to prevent the sleep loop from holding the lock
+    ( exec 9>&-; set +e; while true; do sudo -n true; sleep "$SUDO_REFRESH_INTERVAL"; kill -0 "$$" || exit; done 2>/dev/null ) &
     SUDO_PID=$!
     disown "$SUDO_PID"
 }
@@ -231,14 +233,23 @@ trim() {
     printf '%s' "$var"
 }
 
-# O(1) Memory State Loader
+# O(1) Memory State Loader (STRICT MODE SAFE)
 load_state() {
-    COMPLETED_SCRIPTS=()
-    if [[ -f "$STATE_FILE" ]]; then
-        # Faster than while/read loop, instantly loads file into bash array
+    # Safely wipe the associative array without losing the -A flag
+    unset COMPLETED_SCRIPTS
+    declare -gA COMPLETED_SCRIPTS=()
+
+    # Only attempt to read if the file exists AND is > 0 bytes (-s)
+    if [[ -s "$STATE_FILE" ]]; then
+        # Explicitly declare array to prevent set -u unbound variable exceptions
+        local _state_lines=()
         mapfile -t _state_lines < "$STATE_FILE" 2>/dev/null || true
-        for _line in "${_state_lines[@]:-}"; do
-            [[ -n "$_line" ]] && COMPLETED_SCRIPTS["$_line"]=1
+        
+        for _line in "${_state_lines[@]}"; do
+            # Use proper if-statement to prevent set -e short-circuiting on blank lines
+            if [[ -n "$_line" ]]; then
+                COMPLETED_SCRIPTS["$_line"]=1
+            fi
         done
     fi
 }
@@ -419,7 +430,7 @@ main() {
                 read -r filename args <<< "$rest"
 
                 local mode_label="USER"
-                [[ "$mode" == "S" ]] && mode_label="SUDO"
+                if [[ "$mode" == "S" ]]; then mode_label="SUDO"; fi
 
                 local status=""
 
@@ -441,7 +452,7 @@ main() {
             echo -e "  Total scripts: $i"
             echo -e "  Completed: ${GREEN}${completed_count}${RESET}"
             echo -e "  Pending: ${BLUE}$((i - completed_count - missing_count))${RESET}"
-            [[ $missing_count -gt 0 ]] && echo -e "  Missing: ${RED}${missing_count}${RESET}"
+            if [[ $missing_count -gt 0 ]]; then echo -e "  Missing: ${RED}${missing_count}${RESET}"; fi
             echo ""
             echo "No changes were made."
             exit 0
@@ -654,7 +665,7 @@ main() {
         done
         echo -e "\nYou can run them individually from their respective directories:"
         for dir in "${SCRIPT_SEARCH_DIRS[@]}"; do
-            [[ -d "$dir" ]] && echo -e "  ${BOLD}${dir}/${RESET}"
+            if [[ -d "$dir" ]]; then echo -e "  ${BOLD}${dir}/${RESET}"; fi
         done
         echo -e "${YELLOW}================================================================${RESET}\n"
     fi
