@@ -66,7 +66,7 @@
         "format": "󰣇",
         "tooltip-format": "App Launcher\n\nLMB: Control Center\nRMB: Application Launcher",
         "on-click-right": "uwsm-app -- rofi -show drun",
-        "on-click": "python3 /home/ubaid/user_scripts/dusky_system/control_center/dusky_control_center.py"
+        "on-click": "python3 ~/user_scripts/dusky_system/control_center/dusky_control_center.py"
     },
 
     "hyprland/workspaces": {
