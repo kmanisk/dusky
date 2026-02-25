@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------
-# UWSM GPU Config | Mode: HYBRID | Wed Feb 25 12:14:24 AM IST 2026
+# UWSM GPU Config | Mode: HYBRID | Wed Feb 25 11:36:25 AM IST 2026
 # -----------------------------------------------------------------
 export ELECTRON_OZONE_PLATFORM_HINT=auto
 export MOZ_ENABLE_WAYLAND=1

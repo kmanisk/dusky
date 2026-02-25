@@ -1312,13 +1312,27 @@ pages:
 
     - type: navigation
       properties:
-        title: Environment Variables
+        title: Auto setup GPU Environment Variables
         description: UWSM and Hyprland environment settings
         icon: text-x-script-symbolic
       layout:
         - type: section
           properties:
             title: Environment Variables
+          items:
+            - type: button
+              properties:
+                title: Auto Configure GPU
+                description: Detect and set GPU vars (UWSM)
+                icon: preferences-desktop-display-symbolic
+                style: suggested
+                button_text: "Run"
+              on_press:
+                type: exec
+                command: kitty --class 000_configure_uwsm_gpu.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh"
+        - type: section
+          properties:
+            title: Environment Variable files
           items:
             - type: button
               properties:
@@ -1347,26 +1361,6 @@ pages:
               on_press:
                 type: exec
                 command: gnome-text-editor "$HOME/.config/uwsm/env-hyprland"
-            - type: button
-              properties:
-                title: Auto Configure GPU
-                description: Detect and set GPU vars (UWSM)
-                icon: preferences-desktop-display-symbolic
-                style: suggested
-                button_text: "Run"
-              on_press:
-                type: exec
-                command: kitty --class 000_configure_uwsm_gpu.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/035_configure_uwsm_gpu.sh"
-            - type: button
-              properties:
-                title: Disable GPU Vars
-                description: Comment out all GPU variables
-                icon: edit-delete-symbolic
-                style: destructive
-                button_text: "Run"
-              on_press:
-                type: exec
-                command: kitty --class 000_uwsm_env_comment.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/030_uwsm_env_comment_everything.sh"
 
     - type: navigation
       properties:
