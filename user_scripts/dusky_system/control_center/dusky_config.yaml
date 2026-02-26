@@ -1239,6 +1239,63 @@ pages:
   layout:
   - type: section
     properties:
+      title: System Defaults
+      icon: preferences-desktop-peripherals-symbolic
+      description: Manage your global application preferences
+    items:
+    - type: navigation
+      properties:
+        title: Default Applications
+        description: Browser, File Manager, Editor, and Terminal
+        icon: applications-system-symbolic
+      layout:
+        - type: section
+          properties:
+            title: Global Defaults
+            description: Select your preferred default software
+          items:
+            - type: button
+              properties:
+                title: File Manager
+                description: Switch system-wide file manager
+                icon: system-file-manager-symbolic
+                button_text: "Switch"
+              on_press:
+                type: exec
+                command: kitty --class 235_file_manager_switch.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/235_file_manager_switch.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: Web Browser
+                description: Set default internet browser
+                icon: web-browser-symbolic
+                button_text: "Switch"
+              on_press:
+                type: exec
+                command: kitty --class 236_browser_switcher.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/236_browser_switcher.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: Text Editor
+                description: Set default code/text editor
+                icon: text-editor-symbolic
+                button_text: "Switch"
+              on_press:
+                type: exec
+                command: kitty --class 237_text_editer_switcher.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/237_text_editer_switcher.sh"
+                terminal: false
+            - type: button
+              properties:
+                title: Terminal Emulator
+                description: Set default system terminal
+                icon: utilities-terminal-symbolic
+                button_text: "Switch"
+              on_press:
+                type: exec
+                command: kitty --class 238_terminal_switcher.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/238_terminal_switcher.sh"
+                terminal: false
+  - type: section
+    properties:
       title: Core Configuration
       icon: ''
       description: Main system settings
