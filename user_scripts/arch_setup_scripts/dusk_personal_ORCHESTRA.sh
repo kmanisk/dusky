@@ -72,6 +72,8 @@ INSTALL_SEQUENCE=(
     "S | 225_faillock_timeout.sh"
     "U | 230_non_asus_laptop.sh"
     "U | 235_file_manager_switch.sh"
+    "U | 236_browser_switcher.sh"
+    "U | 237_text_editer_switcher.sh"
     "U | 240_swaync_dgpu_fix.sh"
     "S | 245_asusd_service_fix.sh"
     "S | 250_ftp_arch.sh"

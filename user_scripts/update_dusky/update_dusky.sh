@@ -130,6 +130,7 @@ declare -ra UPDATE_SEQUENCE=(
     "U | 230_non_asus_laptop.sh --auto"
     "U | 235_file_manager_switch.sh --apply-state"
     "U | 236_browser_switcher.sh --apply-state"
+    "U | 237_text_editer_switcher.sh --apply-state"
 #    "U | 240_swaync_dgpu_fix.sh --disable"
 #    "S | 245_asusd_service_fix.sh"
 #    "S | 250_ftp_arch.sh"
