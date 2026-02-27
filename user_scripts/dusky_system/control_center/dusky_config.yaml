@@ -2027,17 +2027,27 @@ pages:
       layout:
         - type: section
           properties:
-            title: Plugin Manager
+            title: Layouts & Workspaces
           items:
             - type: button
               properties:
                 title: Hyprexpo
-                description: Provides workspace overview, inspired by macOS Mission Control or GNOME Activities.
+                description: Provides a workspace overview, inspired by macOS Mission Control or GNOME Activities.
                 icon: view-grid-symbolic
                 button_text: "Install"
               on_press:
                 type: exec
                 command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --expo"
+                terminal: false
+            - type: button
+              properties:
+                title: Hyprspace
+                description: An alternative spatial overview providing a zoomed-out, interactive view of all workspaces.
+                icon: view-app-grid-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --space"
                 terminal: false
             - type: button
               properties:
@@ -2051,14 +2061,64 @@ pages:
                 terminal: false
             - type: button
               properties:
+                title: hy3 (i3 Tiling)
+                description: Replaces the default layout with an i3/Sway-like manual tiling engine using container nodes.
+                icon: view-split-left-right-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --hy3"
+                terminal: false
+
+        - type: section
+          properties:
+            title: Visuals & Enhancements
+          items:
+            - type: button
+              properties:
                 title: Hypr-Dynamic-Cursors
                 description: Adds dynamic physics and behaviors to your cursor, including directional tilt and shake to locate.
-                icon: view-app-grid-symbolic
+                icon: input-mouse-symbolic
                 button_text: "Install"
               on_press:
                 type: exec
                 command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --cursors"
                 terminal: false
+            - type: button
+              properties:
+                title: Hyprbars
+                description: Adds customizable title bars to individual windows, complete with window management buttons.
+                icon: window-new-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --bars"
+                terminal: false
+            - type: button
+              properties:
+                title: Hyprglass
+                description: Enhanced translucent window styling and blur aesthetics for the Wayland compositor.
+                icon: palette-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --glass"
+                terminal: false
+            - type: button
+              properties:
+                title: Hypr-DarkWindow
+                description: Allows applying specific visual shaders (like invert or tint) to individual active windows.
+                icon: display-brightness-symbolic
+                button_text: "Install"
+              on_press:
+                type: exec
+                command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --darkwindow"
+                terminal: false
+
+        - type: section
+          properties:
+            title: Input & Gestures
+          items:
             - type: button
               properties:
                 title: Hypr-Hot-Edge
@@ -2073,11 +2133,12 @@ pages:
               properties:
                 title: Hyprgrass
                 description: Advanced multi-touch gesture support for Wayland touchscreens, enabling swipe and edge mechanics.
-                icon: object-to-path-symbolic
+                icon: input-touchpad-symbolic
                 button_text: "Install"
               on_press:
                 type: exec
                 command: kitty --class 356_dusky_plugin_manager.sh --hold sh -c "$HOME/user_scripts/arch_setup_scripts/scripts/356_dusky_plugin_manager.sh --grass"
+                terminal: false
                 terminal: false
     - type: navigation
       properties:
